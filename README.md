@@ -9,3 +9,9 @@
 | Cell A   | Cell B   | 
 
 
+
+Things to note:
+
+autooverlay
+* cant have the zonal stats open in qgis - it wont run cause its being used in two places
+

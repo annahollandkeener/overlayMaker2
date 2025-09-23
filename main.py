@@ -17,7 +17,7 @@ import overlayMakerFunctions
 
 #------------USER INPUTS--------------------
 #Shapefile (SHP) for block boundaries you would like flat overlays for
-flatBlocksBoundaries = "C:/wfh/per1/updated/updated_blocks_split.shp"
+blockBoundaries =  "C:/Users/annah/Downloads/updated_blocks_test.shp"
 
 #Shapefile (SHP) for block boundaries you would like domed overlays for
 domedBlocksBoundaries = ["C:/wfh/per1/updated/split blocks/domed/block_G11A.shp",
@@ -28,7 +28,7 @@ domedBlocksBoundaries = ["C:/wfh/per1/updated/split blocks/domed/block_G11A.shp"
 "C:/wfh/per1/updated/split blocks/domed/block_H11 C.shp"]
 
 #DEM of ground surface for project area
-groundDEM = "C:/wfh/per1/elevation/CarolinaRanch_2020lidar_3ft (2).tif"
+groundDEM = "C:/wfh/per1/old/elevation/CarolinaRanch_2020lidar_3ft (2).tif"
 
 #Rasterized (TIF) version of your block boundaries
 waterTableDEM = "C:/wfh/python/overlayMaker/testmaterials/E11A/E11A.shp"
@@ -39,10 +39,10 @@ projectRoads = "C:/wfh/python/overlayMaker/testmaterials/E11A/E11A.shp"
 overlay = "C:/wfh/per1/updated/updated_blocks_overlay.tif"
 
 #Where you would like the results to end up
-outputFolder = "C:/python/overlayMaker"
+outputFolder = "C:/wfh/python/overlayMaker/testmaterials/autoOverlay"
 
 #-------------EXECUTIONS---------------------
-overlayMakerFunctions.rasterHist(overlay, flatBlocksBoundaries, outputFolder)
+overlayMakerFunctions.autoOverlay(blockBoundaries, groundDEM, outputFolder)
 #----------------------------------
 
 # Finally, exitQgis() is called to remove the

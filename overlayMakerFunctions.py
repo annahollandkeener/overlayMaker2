@@ -1,6 +1,7 @@
 #IMPORTS
 import os
-from qgis.core import QgsVectorLayer
+from qgis.core import QgsVectorLayer, QgsCoordinateReferenceSystem, QgsField
+from qgis.PyQt.QtCore import QVariant
 import processing
 from processing.core.Processing import Processing
 from qgis.core import QgsRasterLayer, QgsProject
@@ -8,6 +9,7 @@ from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 from osgeo import gdal
 import pandas as pd
 import matplotlib.pyplot as plt
+from qgis.core import edit
 
 #Starting processing
 Processing.initialize()
@@ -140,7 +142,7 @@ def flatWT(blocks, outputFolder):
     return blockFlatRaster['OUTPUT']
 
 #DOMED WATER TABLE GENERATOR: Creates a domed water table raster for specified blocks
-def domedWT(domedBlocks, outputFolder):
+def domedWT(domedBlocks, outputFolder, columnIndicator = 2):
     print("\n~ Performing creation of domed water table ~\n")
     
     #saving sources of clipped domes in order to merge later
@@ -165,7 +167,7 @@ def domedWT(domedBlocks, outputFolder):
         extent = domeLayer.extent()
         
         #setting up path and instructions for TIN interpolation tool
-        interpolationData = dome + '::~::0::~::1::~::2'
+        interpolationData = dome + '::~::0::~::' + str(columnIndicator) + '::~::2'
         
         #setting outputs for each stage of the overlay
         outputPathRough = outputFolder + '/roughDome_' + baseName + '.tif'
@@ -212,6 +214,127 @@ def roadCalc(dem, roads, WT, outputFolder):
 
     #subtracting proposed water table from rasterized version of the roads
     #roadsOverlay = rasterSubtractor.rasterSubtractor(roadsRaster['OUTPUT'], WT, outputPath)
+
+#AUTO OVERLAY: takes in blocks and a dem and outputs 5 overlay options and associated histograms
+def autoOverlay(blocks, dem, outputFolder):
+    outputPath = outputFolder + "/demStats"
+
+    #adding other wl columns for overlay options
+    overlayOptions = [0, 1, 2, -1, -2]
+
+    #calculating DEM stats: count, sum, mean, stdv
+    demStats = processing.run("native:zonalstatisticsfb", {'INPUT':blocks,'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':outputPath})
+    print("Zonal Stats for initial blocks located here: " + demStats['OUTPUT'])
+    print(demStats)
+
+    #adding wl column to block (mean - 1stdv)
+    target_field = 'wl'
+
+    demStatsVL = QgsVectorLayer(demStats['OUTPUT'], "DEMStats")
+    
+    with edit(demStatsVL):
+        for feature in demStatsVL.getFeatures():
+            print(feature['_mean'] - feature['_stdev'])
+            feature.setAttribute(feature.fieldNameIndex('wl'), feature['_mean'] - feature['_stdev'])
+            demStatsVL.updateFeature(feature)
+    
+    print(f"Attribute calculated for {target_field} field")
+
+    #splitting each block into its own layer
+    splitBlocksInput = demStats["OUTPUT"] + '|layername=demStats'
+    splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'fid','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':'TEMPORARY_OUTPUT'})
+    print(splitBlocks['OUTPUT_LAYERS'])
+
+    #making grid for each block to determine highest point and add this as a dome feature to the block
+    for b in splitBlocks['OUTPUT_LAYERS']:
+        block = QgsVectorLayer(b, "block")
+
+        blockFeatures = block.getFeature()
+
+        #creating grid 
+        grid = processing.run("native:creategrid", {'TYPE':0,'EXTENT':block.extent(),'HSPACING':492.12499999999864,'VSPACING':492.12499999999864,'HOVERLAY':0,'VOVERLAY':0,'CRS':QgsCoordinateReferenceSystem(block.crs()),'OUTPUT':'TEMPORARY_OUTPUT'})
+        #buffering the grid
+        buffered = processing.run("native:buffer", {'INPUT':grid['OUTPUT'],'DISTANCE':199.99959999999948,'SEGMENTS':5,'END_CAP_STYLE':0,'JOIN_STYLE':0,'MITER_LIMIT':2,'DISSOLVE':False,'SEPARATE_DISJOINT':False,'OUTPUT':'TEMPORARY_OUTPUT'})
+        #zonal stats on the grid vectors
+        TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':buffered['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':'TEMPORARY_OUTPUT'})
+        #Making this into a vector layer
+        TODStatsVL = QgsVectorLayer(TODStats, "topofdomeStats")
+
+        #adding a wl column for easy merging
+        with edit(TODStatsVL):
+                wl = QgsField("wl", QVariant.Int) 
+
+                TODStatsVL.addAttribute(wl)
+            
+        #getting index of max mean value in attribute table
+        meanIndex = TODStatsVL.fields().indexFromName("_mean")
+        #getting max mean 
+        maxMean = TODStatsVL.maximumValue(meanIndex)
+
+        #getting feature id of max mean
+        found_feature_id = None
+        for feature in TODStatsVL.getFeatures():
+            if feature['wl'] == maxMean:
+                found_feature_id = feature.id()
+                break
+        
+        #creating an instance of that feature
+        maxMeanFeature = TODStatsVL.getFeature(found_feature_id)
+
+        #variable for getting the index of the wl columns so we can have the proper TIN interp settings
+        wlIndexes = []
+
+        #adding that feature to the block layer
+        with edit(block):
+            block.addFeature(maxMeanFeature)
+
+            attribute = block.fields().indexOf('wl')
+            #make sure to include the base overlay option 
+            wlIndexes.append(attribute)
+            
+            for feature in block.getFeatures():
+                if feature['block'] != 'NULL'  & feature['wl'] != 'NULL':
+                    TODwL = feature['_mean']
+                else:
+                    outerID = feature.id()
+
+            block.changeAttributeValue(outerID, attribute, TODwL)
+            
+            #adds in the column then fills
+            for overlay in overlayOptions:
+                wlFieldName = "wl_" + str(overlay)
+                wlField = QgsField(wlFieldName, QVariant.Int) 
+                block.addAttribute(wlField)
+            
+                #and fills with corresponding overlay calc 
+                for feature in block.getFeatures():
+                    wlIndexes.append(feature.fieldNameIndex(wlField))
+
+                    feature.setAttribute(feature.fieldNameIndex(wlField), feature['wl'] + overlay)
+                    block.updateFeature(feature)
+
+        
+            block.commitChanges()
+
+    #going through every option 
+    n = 0 
+    for index in wlIndexes:
+        #creating domes for each overlay option 
+        domedWTOutputPath = outputFolder + "/mergedDomedWT_" + str(overlayOptions[n])
+        domedWaterTable = domedWT(splitBlocks, domedWTOutputPath, index)
+
+        #creating overlay
+        domedOverlayOutputPath = outputFolder + "/domedOverlay_" + str(overlayOptions[n])
+        overlay = rasterSubtractor(dem, domedWaterTable, domedOverlayOutputPath)
+
+        #creating histogram
+        rasterHistOutput = outputFolder + "/rasterHist_" + str(overlayOptions[n])
+        rasterHist(overlay, blocks, rasterHistOutput)
+
+        n += 1
+
+
+
 
 
 
