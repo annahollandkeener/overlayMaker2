@@ -9,7 +9,7 @@ from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 from osgeo import gdal
 import pandas as pd
 import matplotlib.pyplot as plt
-from qgis.core import edit
+from qgis.core import edit, QgsVectorDataProvider
 
 #Starting processing
 Processing.initialize()
@@ -217,6 +217,9 @@ def roadCalc(dem, roads, WT, outputFolder):
 
 #AUTO OVERLAY: takes in blocks and a dem and outputs 5 overlay options and associated histograms
 def autoOverlay(blocks, dem, outputFolder):
+    testOutputPath = "C:/Users/annah/Downloads/testmaterials/autoOverlay/output"
+
+
     outputPath = outputFolder + "/demStats"
 
     #adding other wl columns for overlay options
@@ -244,42 +247,60 @@ def autoOverlay(blocks, dem, outputFolder):
     splitBlocksInput = demStats["OUTPUT"] + '|layername=demStats'
     splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'fid','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':'TEMPORARY_OUTPUT'})
     print(splitBlocks['OUTPUT_LAYERS'])
-
+    i = 0
     #making grid for each block to determine highest point and add this as a dome feature to the block
     for b in splitBlocks['OUTPUT_LAYERS']:
+        
+        print(i)
         block = QgsVectorLayer(b, "block")
-
-        blockFeatures = block.getFeature()
 
         #creating grid 
         grid = processing.run("native:creategrid", {'TYPE':0,'EXTENT':block.extent(),'HSPACING':492.12499999999864,'VSPACING':492.12499999999864,'HOVERLAY':0,'VOVERLAY':0,'CRS':QgsCoordinateReferenceSystem(block.crs()),'OUTPUT':'TEMPORARY_OUTPUT'})
         #buffering the grid
         buffered = processing.run("native:buffer", {'INPUT':grid['OUTPUT'],'DISTANCE':199.99959999999948,'SEGMENTS':5,'END_CAP_STYLE':0,'JOIN_STYLE':0,'MITER_LIMIT':2,'DISSOLVE':False,'SEPARATE_DISJOINT':False,'OUTPUT':'TEMPORARY_OUTPUT'})
         #zonal stats on the grid vectors
-        TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':buffered['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':'TEMPORARY_OUTPUT'})
+        TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':buffered['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':testOutputPath + "_" + str(i)})
         #Making this into a vector layer
-        TODStatsVL = QgsVectorLayer(TODStats, "topofdomeStats")
 
+        TODStatsVL = QgsVectorLayer(TODStats['OUTPUT'], "TODStatsVL" + str(i), "memory")
+        print(TODStatsVL)
+        i += 1
+    
         #adding a wl column for easy merging
-        with edit(TODStatsVL):
-                wl = QgsField("wl", QVariant.Int) 
+        #with edit(TODStatsVL):
+        print("editing")
+        
+        
+        TODStatsVL.startEditing()
+        wll = QgsField("wl", QVariant.Int) 
 
-                TODStatsVL.addAttribute(wl)
-            
+        TODStatsVLpr = TODStatsVL.dataProvider()
+        TODStatsVLpr.addAttributes([wll])
+        TODStatsVL.updateFields()
+        TODStatsVL.commitChanges()
+       
+
+        
+    '''      
         #getting index of max mean value in attribute table
         meanIndex = TODStatsVL.fields().indexFromName("_mean")
         #getting max mean 
         maxMean = TODStatsVL.maximumValue(meanIndex)
 
+        print(maxMean)
+
+
+   
+
         #getting feature id of max mean
         found_feature_id = None
-        for feature in TODStatsVL.getFeatures():
+        for feature in TODStats.getFeatures():
             if feature['wl'] == maxMean:
                 found_feature_id = feature.id()
                 break
         
         #creating an instance of that feature
-        maxMeanFeature = TODStatsVL.getFeature(found_feature_id)
+        maxMeanFeature = TODStats.getFeature(found_feature_id)
 
         #variable for getting the index of the wl columns so we can have the proper TIN interp settings
         wlIndexes = []
@@ -333,12 +354,7 @@ def autoOverlay(blocks, dem, outputFolder):
 
         n += 1
 
-
-
-
-
-
-
+'''
 
 
 
