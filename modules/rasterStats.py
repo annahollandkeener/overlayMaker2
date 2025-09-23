@@ -74,7 +74,7 @@ def rasterHist(overlay, blocks, outputFolder, reclass = None):
     #setting up window to hold multiple histograms
     n_cols = 2
     n_rows = (len(histogramData) + n_cols - 1) // n_cols
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(8, 2.5 * n_rows))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(8, 2.5   * n_rows))
     axes = axes.flatten()
 
     histNameNum = 0 

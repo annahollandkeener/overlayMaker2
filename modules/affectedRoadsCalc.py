@@ -30,6 +30,7 @@ def roadCalc(dem, roads, WT, outputFolder):
     print(roadRasterOP)
 
     #clipping dem to roads
+    processing.run("gdal:rasterize", {'INPUT':'C:/Users/annah/Downloads/CarolinaRanch_roads.shp','FIELD':'','BURN':1,'USE_Z':False,'UNITS':1,'WIDTH':3,'HEIGHT':3,'EXTENT':None,'NODATA':0,'OPTIONS':None,'DATA_TYPE':5,'INIT':None,'INVERT':False,'EXTRA':'','OUTPUT':'C:/Users/annah/Downloads/rr2.tif'})
     roadsRaster = processing.run("gdal:cliprasterbymasklayer", {'INPUT':dem,'MASK':roads,'SOURCE_CRS':None,'TARGET_CRS':None,'TARGET_EXTENT':None,'NODATA':None,'ALPHA_BAND':False,'CROP_TO_CUTLINE':True,'KEEP_RESOLUTION':False,'SET_RESOLUTION':False,'X_RESOLUTION':None,'Y_RESOLUTION':None,'MULTITHREADING':False,'OPTIONS':None,'DATA_TYPE':0,'EXTRA':'','OUTPUT':'C:/wfh/python/overlayMaker/RR'})
 
     #subtracting proposed water table from rasterized version of the roads

@@ -2,20 +2,18 @@
 from qgis.core import QgsApplication
 #from qgis.analysis import QgsNativeAlgorithms
 
-# Supply path to qgis install location
+#Supply path to qgis install location
 QgsApplication.setPrefixPath(QgsApplication.prefixPath(), True)
 
 # Create a reference to the QgsApplication.  Setting the
 # second argument to False disables the GUI.
 qgs = QgsApplication([], False)
 
-# Load providers
+#Load providers
 qgs.initQgis()
 
-#QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
-
-#modules - import the ones you need
-from modules import rasterStats, domedWaterTableMaker
+#Importing all overlay maker functions
+import overlayMakerFunctions
 
 #------------USER INPUTS--------------------
 #Shapefile (SHP) for block boundaries you would like flat overlays for
@@ -44,15 +42,7 @@ overlay = "C:/wfh/per1/updated/updated_blocks_overlay.tif"
 outputFolder = "C:/python/overlayMaker"
 
 #-------------EXECUTIONS---------------------
-
-#rasterSubtractor.rasterSubtractor(groundDEM, waterTableDEM, outputFolder)
-#flatWaterTableMaker.flatWT(flatBlocksBoundaries, outputFolder)
-#domedWaterTableMaker.domedWT(domedBlocksBoundaries, outputFolder)
-#rasterSubtractor.rasterSubtractor(groundDEM, flatWaterTableMaker.flatWT(flatBlocksBoundaries, outputFolder), outputFolder)
-
-#affectedRoadsCalc.roadCalc(groundDEM, projectRoads, waterTableDEM, outputFolder)
-
-rasterStats.rasterHist(overlay, flatBlocksBoundaries, outputFolder)
+overlayMakerFunctions.rasterHist(overlay, flatBlocksBoundaries, outputFolder)
 #----------------------------------
 
 # Finally, exitQgis() is called to remove the
