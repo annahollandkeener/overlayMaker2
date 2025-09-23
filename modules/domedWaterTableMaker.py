@@ -37,24 +37,25 @@ def domedWT(domedBlocks, outputFolder):
         interpolationData = dome + '::~::0::~::1::~::2'
         
         #setting outputs for each stage of the overlay
-        outputPathRough = outputFolder + 'roughDome_' + baseName + '.tif'
-        outputPathResampled =  outputFolder + 'resampledDome' + baseName + '.tif'
-        outputPathClipped = outputFolder + 'smoothDome' + baseName + '.tif'
+        outputPathRough = outputFolder + '/roughDome_' + baseName + '.tif'
+        outputPathClipped = outputFolder + '/domed_clipped_' + baseName + '.tif'
         
         #calculating rough dome and adding to map viewer
         domeRough = processing.run("qgis:tininterpolation", {'INTERPOLATION_DATA':interpolationData,'METHOD':0,'EXTENT':extent,'PIXEL_SIZE':15,'OUTPUT': outputPathRough})
         
         
-        #calculating smooth dome and adding to map viewer
-        domeSmooth = processing.run("grass:r.resamp.filter", {'input':outputPathRough,'filter':[0],'radius':'200','x_radius':'','y_radius':'','-n':False,'output':'TEMPORARY_OUTPUT','GRASS_REGION_PARAMETER':None,'GRASS_REGION_CELLSIZE_PARAMETER':0,'GRASS_RASTER_FORMAT_OPT':'','GRASS_RASTER_FORMAT_META':''})
+        #SMOOTHING UNNECESSARY AFTER LOOKING AT ELEV PROFILE OF DOME 
+        # calculating smooth dome and adding to map viewer
+        '''domeSmooth = processing.run("grass:r.resamp.filter", {'input':outputPathRough,'filter':[0],'radius':'200','x_radius':'','y_radius':'','-n':False,'output':'TEMPORARY_OUTPUT','GRASS_REGION_PARAMETER':None,'GRASS_REGION_CELLSIZE_PARAMETER':0,'GRASS_RASTER_FORMAT_OPT':'','GRASS_RASTER_FORMAT_META':''})
         #processing.run("grass:r.resamp.filter", {'input':outputPathRough,'filter':[0],'radius':'200','x_radius':'','y_radius':'','-n':False,'output': 'TEMPORARY_OUTPUT','GRASS_REGION_PARAMETER':None,'GRASS_REGION_CELLSIZE_PARAMETER':0,'GRASS_RASTER_FORMAT_OPT':'','GRASS_RASTER_FORMAT_META':''})        
-        
+        '''
         #clipping dome to block and adding to map viewer
-        domeClipped = processing.run("gdal:cliprasterbymasklayer", {'INPUT':domeSmooth['output'],'MASK':dome,'SOURCE_CRS':None,'TARGET_CRS':None,'TARGET_EXTENT':extent,'NODATA':None,'ALPHA_BAND':False,'CROP_TO_CUTLINE':True,'KEEP_RESOLUTION':False,'SET_RESOLUTION':False,'X_RESOLUTION':None,'Y_RESOLUTION':None,'MULTITHREADING':False,'OPTIONS':None,'DATA_TYPE':0,'EXTRA':'','OUTPUT':outputPathClipped})
-        
+        #domeClipped = processing.run("gdal:cliprasterbymasklayer", {'INPUT':domeRough['OUTPUT'],'MASK':dome,'SOURCE_CRS':None,'TARGET_CRS':None,'TARGET_EXTENT':extent,'NODATA':None,'ALPHA_BAND':False,'CROP_TO_CUTLINE':True,'KEEP_RESOLUTION':False,'SET_RESOLUTION':False,'X_RESOLUTION':None,'Y_RESOLUTION':None,'MULTITHREADING':False,'OPTIONS':None,'DATA_TYPE':0,'EXTRA':'','OUTPUT':outputPathClipped})
+        domeClipped = processing.run("gdal:cliprasterbyextent", {'INPUT':domeRough['OUTPUT'],'PROJWIN': extent,'OVERCRS':False,'NODATA':None,'OPTIONS':None,'DATA_TYPE':0,'EXTRA':'','OUTPUT':outputPathClipped})
         #adding final clipped dome to a list
         clippedDomes.append(domeClipped['OUTPUT'])
 
+    print(clippedDomes)
     #merging all domes    
     merge = processing.run("gdal:merge", {'INPUT':clippedDomes,'PCT':False,'SEPARATE':False,'NODATA_INPUT':None,'NODATA_OUTPUT':0,'OPTIONS':None,'EXTRA':'','DATA_TYPE':5,'OUTPUT':outputFolder + '/all_domedWT_merged.tif'})
     
