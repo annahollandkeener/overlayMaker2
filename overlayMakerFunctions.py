@@ -1,6 +1,6 @@
 #IMPORTS
 import os
-from qgis.core import QgsVectorLayer, QgsCoordinateReferenceSystem, QgsField
+from qgis.core import QgsVectorLayer, QgsCoordinateReferenceSystem, QgsField, QgsVectorFileWriter, QgsCoordinateTransformContext
 from qgis.PyQt.QtCore import QVariant
 import processing
 from processing.core.Processing import Processing
@@ -245,14 +245,15 @@ def autoOverlay(blocks, dem, outputFolder):
 
     #splitting each block into its own layer
     splitBlocksInput = demStats["OUTPUT"] + '|layername=demStats'
-    splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'fid','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':'TEMPORARY_OUTPUT'})
+    splitBlocksOutput = "C:/Users/annah/Downloads/testmaterials/autoOverlay/split"
+    splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'block','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':splitBlocksOutput})
     print(splitBlocks['OUTPUT_LAYERS'])
     i = 0
     #making grid for each block to determine highest point and add this as a dome feature to the block
     for b in splitBlocks['OUTPUT_LAYERS']:
         
         print(i)
-        block = QgsVectorLayer(b, "block")
+        block = QgsVectorLayer(b, "block", "ogr")
 
         #creating grid 
         grid = processing.run("native:creategrid", {'TYPE':0,'EXTENT':block.extent(),'HSPACING':492.12499999999864,'VSPACING':492.12499999999864,'HOVERLAY':0,'VOVERLAY':0,'CRS':QgsCoordinateReferenceSystem(block.crs()),'OUTPUT':'TEMPORARY_OUTPUT'})
@@ -262,52 +263,94 @@ def autoOverlay(blocks, dem, outputFolder):
         TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':buffered['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':testOutputPath + "_" + str(i)})
         #Making this into a vector layer
 
-        TODStatsVL = QgsVectorLayer(TODStats['OUTPUT'], "TODStatsVL" + str(i), "memory")
+        TODStatsVL = QgsVectorLayer(TODStats['OUTPUT'], "TODStatsVL" + str(i), "ogr")
         print(TODStatsVL)
-        i += 1
+        
     
         #adding a wl column for easy merging
-        #with edit(TODStatsVL):
-        print("editing")
-        
-        
-        TODStatsVL.startEditing()
-        wll = QgsField("wl", QVariant.Int) 
+        wl = QgsField("wl", QVariant.Int) 
 
+        #editing vector layer
+        TODStatsVL.startEditing()
+
+        #using data provider to add wl column
         TODStatsVLpr = TODStatsVL.dataProvider()
-        TODStatsVLpr.addAttributes([wll])
+        TODStatsVLpr.addAttributes([wl])
+
+        #closing out editing and saving
         TODStatsVL.updateFields()
         TODStatsVL.commitChanges()
-       
 
-        
-    '''      
+           
         #getting index of max mean value in attribute table
         meanIndex = TODStatsVL.fields().indexFromName("_mean")
         #getting max mean 
         maxMean = TODStatsVL.maximumValue(meanIndex)
 
         print(maxMean)
-
-
    
-
         #getting feature id of max mean
         found_feature_id = None
-        for feature in TODStats.getFeatures():
-            if feature['wl'] == maxMean:
+        for feature in TODStatsVL.getFeatures():
+            if feature['_mean'] == maxMean:
                 found_feature_id = feature.id()
+                print("FOUND FEATURE ID: " + str(found_feature_id))
                 break
         
         #creating an instance of that feature
-        maxMeanFeature = TODStats.getFeature(found_feature_id)
+        maxMeanFeature = TODStatsVL.getFeature(found_feature_id)
+        print(maxMeanFeature)
 
-        #variable for getting the index of the wl columns so we can have the proper TIN interp settings
+        TODStatsVL.selectByIds([found_feature_id])
+
+        #creating a new vecotr file for dome top
+        if TODStatsVL.selectedFeatureCount() > 0:
+           
+            print("FEATURES SELECTED: " + str(TODStatsVL.selectedFeatureCount()))
+            save_options = QgsVectorFileWriter.SaveVectorOptions()
+            save_options.driverName = "GPKG"
+            save_options.layerName = "new_layer_name"
+            save_options.onlySelectedFeatures = True  # Set to True to export only selected features
+            save_options.destCRS = TODStatsVL.crs() # Export with the same CRS
+            save_options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
+            save_options.layerOptions = ["OVERWRITE=YES"]
+            transform_context = QgsProject.instance().transformContext()
+
+            TODOutputPath = testOutputPath + "_" + str(i) + "_TOD"
+            topOfDome = QgsVectorFileWriter.writeAsVectorFormatV3(layer=TODStatsVL, fileName=TODOutputPath, transformContext=transform_context, options=save_options)
+        else:
+            print("no features selected")
+
+        print(topOfDome)
+        i += 1
+
+        #JUST MERGE THE TOD WITH THE BLOCK, BUT CLIP GRID TO BLOCK BECAUSE ITS CURRENTLY SELECTING OUTSIDE OF BLOCK FOR MAX MEAN
+        '''
+
+        #variable for getting the index of the wl columns so we can have the proper TIN interp settings later
         wlIndexes = []
 
         #adding that feature to the block layer
-        with edit(block):
-            block.addFeature(maxMeanFeature)
+        
+        #editing vector layer
+        block.startEditing()
+
+        #deleting fid column, because for some reason its messing up with adding dome feature
+        fid_index = block.fields().indexOf("fid")
+        if fid_index != -1: # Check if the field exists
+            block.deleteAttribute(fid_index)
+        else:
+            print(f"Field 'fid' not found.")
+        
+        block.updateFields()
+
+        #using data provider to add wl column
+        blockpr = TODStatsVL.dataProvider()
+        blockpr.addFeature(maxMeanFeature)
+
+        #closing out editing and saving
+        block.updateFields()
+        block.commitChanges()
 
             attribute = block.fields().indexOf('wl')
             #make sure to include the base overlay option 
