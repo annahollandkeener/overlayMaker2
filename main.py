@@ -20,12 +20,7 @@ import overlayMakerFunctions
 blockBoundaries =  "C:/Users/annah/Downloads/updated_blocks_test.shp"
 
 #Shapefile (SHP) for block boundaries you would like domed overlays for
-domedBlocksBoundaries = ["C:/wfh/per1/updated/split blocks/domed/block_G11A.shp",
-"C:/wfh/per1/updated/split blocks/domed/block_F11 B.shp",
-"C:/wfh/per1/updated/split blocks/domed/block_F11 A.shp",
-"C:/wfh/per1/updated/split blocks/domed/block_E11 B.shp",
-"C:/wfh/per1/updated/split blocks/domed/block_E11 A.shp",
-"C:/wfh/per1/updated/split blocks/domed/block_H11 C.shp"]
+domedBlocksBoundaries = []
 
 #DEM of ground surface for project area
 groundDEM = "C:/wfh/per1/old/elevation/CarolinaRanch_2020lidar_3ft (2).tif"
