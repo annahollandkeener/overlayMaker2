@@ -9,7 +9,7 @@ from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 from osgeo import gdal
 import pandas as pd
 import matplotlib.pyplot as plt
-from qgis.core import edit, QgsVectorDataProvider
+from qgis.core import edit, QgsVectorDataProvider, QgsVariantUtils
 
 #Starting processing
 Processing.initialize()
@@ -177,13 +177,7 @@ def domedWT(domedBlocks, outputFolder, columnIndicator = 2):
         domeRough = processing.run("qgis:tininterpolation", {'INTERPOLATION_DATA':interpolationData,'METHOD':0,'EXTENT':extent,'PIXEL_SIZE':15,'OUTPUT': outputPathRough})
         
         
-        #SMOOTHING UNNECESSARY AFTER LOOKING AT ELEV PROFILE OF DOME 
-        # calculating smooth dome and adding to map viewer
-        '''domeSmooth = processing.run("grass:r.resamp.filter", {'input':outputPathRough,'filter':[0],'radius':'200','x_radius':'','y_radius':'','-n':False,'output':'TEMPORARY_OUTPUT','GRASS_REGION_PARAMETER':None,'GRASS_REGION_CELLSIZE_PARAMETER':0,'GRASS_RASTER_FORMAT_OPT':'','GRASS_RASTER_FORMAT_META':''})
-        #processing.run("grass:r.resamp.filter", {'input':outputPathRough,'filter':[0],'radius':'200','x_radius':'','y_radius':'','-n':False,'output': 'TEMPORARY_OUTPUT','GRASS_REGION_PARAMETER':None,'GRASS_REGION_CELLSIZE_PARAMETER':0,'GRASS_RASTER_FORMAT_OPT':'','GRASS_RASTER_FORMAT_META':''})        
-        '''
         #clipping dome to block and adding to map viewer
-        #domeClipped = processing.run("gdal:cliprasterbymasklayer", {'INPUT':domeRough['OUTPUT'],'MASK':dome,'SOURCE_CRS':None,'TARGET_CRS':None,'TARGET_EXTENT':extent,'NODATA':None,'ALPHA_BAND':False,'CROP_TO_CUTLINE':True,'KEEP_RESOLUTION':False,'SET_RESOLUTION':False,'X_RESOLUTION':None,'Y_RESOLUTION':None,'MULTITHREADING':False,'OPTIONS':None,'DATA_TYPE':0,'EXTRA':'','OUTPUT':outputPathClipped})
         domeClipped = processing.run("gdal:cliprasterbyextent", {'INPUT':domeRough['OUTPUT'],'PROJWIN': extent,'OVERCRS':False,'NODATA':None,'OPTIONS':None,'DATA_TYPE':0,'EXTRA':'','OUTPUT':outputPathClipped})
         #adding final clipped dome to a list
         clippedDomes.append(domeClipped['OUTPUT'])
@@ -192,7 +186,7 @@ def domedWT(domedBlocks, outputFolder, columnIndicator = 2):
     #merging all domes    
     merge = processing.run("gdal:merge", {'INPUT':clippedDomes,'PCT':False,'SEPARATE':False,'NODATA_INPUT':None,'NODATA_OUTPUT':0,'OPTIONS':None,'EXTRA':'','DATA_TYPE':5,'OUTPUT':outputFolder + '/all_domedWT_merged.tif'})
     
-    print("COMPLETED DOME: " + baseName)
+    print("COMPLETED DOME: " + merge['OUTPUT'])
 
     return merge
 
@@ -225,6 +219,9 @@ def autoOverlay(blocks, dem, outputFolder):
     #adding other wl columns for overlay options
     overlayOptions = [0, 1, 2, -1, -2]
 
+    #LIST FOR HOLDING MERGED BLOCKS WITH INNER AND OUTER BOUNDARIES
+    domeBlocks = []
+
     #calculating DEM stats: count, sum, mean, stdv
     demStats = processing.run("native:zonalstatisticsfb", {'INPUT':blocks,'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':outputPath})
     print("Zonal Stats for initial blocks located here: " + demStats['OUTPUT'])
@@ -256,9 +253,13 @@ def autoOverlay(blocks, dem, outputFolder):
         block = QgsVectorLayer(b, "block", "ogr")
 
         #creating grid 
-        grid = processing.run("native:creategrid", {'TYPE':0,'EXTENT':block.extent(),'HSPACING':492.12499999999864,'VSPACING':492.12499999999864,'HOVERLAY':0,'VOVERLAY':0,'CRS':QgsCoordinateReferenceSystem(block.crs()),'OUTPUT':'TEMPORARY_OUTPUT'})
+        grid = processing.run("native:creategrid", {'TYPE':0,'EXTENT':block.extent(),'HSPACING':610,'VSPACING':610,'HOVERLAY':0,'VOVERLAY':0,'CRS':QgsCoordinateReferenceSystem(block.crs()),'OUTPUT':'TEMPORARY_OUTPUT'})
+
+        #
+        clippedGrid = processing.run("native:clip", {'INPUT':grid['OUTPUT'],'OVERLAY':block,'OUTPUT':'TEMPORARY_OUTPUT'})
+    
         #buffering the grid
-        buffered = processing.run("native:buffer", {'INPUT':grid['OUTPUT'],'DISTANCE':199.99959999999948,'SEGMENTS':5,'END_CAP_STYLE':0,'JOIN_STYLE':0,'MITER_LIMIT':2,'DISSOLVE':False,'SEPARATE_DISJOINT':False,'OUTPUT':'TEMPORARY_OUTPUT'})
+        buffered = processing.run("native:buffer", {'INPUT':clippedGrid['OUTPUT'],'DISTANCE':599.99959999999948,'SEGMENTS':5,'END_CAP_STYLE':0,'JOIN_STYLE':0,'MITER_LIMIT':2,'DISSOLVE':False,'SEPARATE_DISJOINT':False,'OUTPUT':'TEMPORARY_OUTPUT'})
         #zonal stats on the grid vectors
         TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':buffered['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':testOutputPath + "_" + str(i)})
         #Making this into a vector layer
@@ -308,7 +309,7 @@ def autoOverlay(blocks, dem, outputFolder):
            
             print("FEATURES SELECTED: " + str(TODStatsVL.selectedFeatureCount()))
             save_options = QgsVectorFileWriter.SaveVectorOptions()
-            save_options.driverName = "GPKG"
+            save_options.driverName = "ESRI Shapefile"
             save_options.layerName = "new_layer_name"
             save_options.onlySelectedFeatures = True  # Set to True to export only selected features
             save_options.destCRS = TODStatsVL.crs() # Export with the same CRS
@@ -322,80 +323,109 @@ def autoOverlay(blocks, dem, outputFolder):
             print("no features selected")
 
         print(topOfDome)
-        i += 1
+        
 
         #JUST MERGE THE TOD WITH THE BLOCK, BUT CLIP GRID TO BLOCK BECAUSE ITS CURRENTLY SELECTING OUTSIDE OF BLOCK FOR MAX MEAN
-        '''
+        
+        domeBlockMerged = processing.run("native:mergevectorlayers", {'LAYERS':[b, topOfDome[2]],'CRS':None,'OUTPUT':testOutputPath + "_domedBlockMerged_" + str(i)})
+        domeBlockMergedVL = QgsVectorLayer(domeBlockMerged['OUTPUT'], "domeBlockMergedVL", "ogr")
 
         #variable for getting the index of the wl columns so we can have the proper TIN interp settings later
         wlIndexes = []
 
-        #adding that feature to the block layer
+        #make sure to include the base overlay option 
+        attribute = domeBlockMergedVL.fields().indexOf('wl')
+        blockAttrIndex = domeBlockMergedVL.fields().indexOf('block')
+        wlIndexes.append(attribute)
         
         #editing vector layer
-        block.startEditing()
+        domeBlockMergedVL.startEditing()
 
-        #deleting fid column, because for some reason its messing up with adding dome feature
-        fid_index = block.fields().indexOf("fid")
-        if fid_index != -1: # Check if the field exists
-            block.deleteAttribute(fid_index)
-        else:
-            print(f"Field 'fid' not found.")
+        #creating data provider to add wl data 
+        domeBlockMergedVLpr = domeBlockMergedVL.dataProvider()
+
+        innerID = 0
+        TODwL = 0
+        blockName = ''
+
+        for feature in domeBlockMergedVL.getFeatures():
+            if QgsVariantUtils.isNull(feature['wl']) == False:
+                print("OUTER FOUND")
+                print(feature)
+                TODwL = feature['_mean']
+                blockName = feature['block']
+            else:
+                print("INNER FOUND")
+                print(feature['block'])
+                innerID = feature.id()
+
+        #setting top of dome water level to mean 
+        domeBlockMergedVL.changeAttributeValue(innerID, attribute, TODwL)
+        #changing inner block name to match overall block name
+        domeBlockMergedVL.changeAttributeValue(innerID, blockAttrIndex, blockName + "_inner")
         
-        block.updateFields()
-
-        #using data provider to add wl column
-        blockpr = TODStatsVL.dataProvider()
-        blockpr.addFeature(maxMeanFeature)
-
-        #closing out editing and saving
-        block.updateFields()
-        block.commitChanges()
-
-            attribute = block.fields().indexOf('wl')
-            #make sure to include the base overlay option 
-            wlIndexes.append(attribute)
-            
-            for feature in block.getFeatures():
-                if feature['block'] != 'NULL'  & feature['wl'] != 'NULL':
-                    TODwL = feature['_mean']
-                else:
-                    outerID = feature.id()
-
-            block.changeAttributeValue(outerID, attribute, TODwL)
-            
-            #adds in the column then fills
-            for overlay in overlayOptions:
-                wlFieldName = "wl_" + str(overlay)
-                wlField = QgsField(wlFieldName, QVariant.Int) 
-                block.addAttribute(wlField)
-            
-                #and fills with corresponding overlay calc 
-                for feature in block.getFeatures():
-                    wlIndexes.append(feature.fieldNameIndex(wlField))
-
-                    feature.setAttribute(feature.fieldNameIndex(wlField), feature['wl'] + overlay)
-                    block.updateFeature(feature)
-
+        domeBlockMergedVL.updateFields()
         
-            block.commitChanges()
+        #adds in the column then fills
+        for overlay in overlayOptions:
+            wlFieldName = "wl_" + str(overlay)
 
+            print(wlFieldName)
+
+            wlField = QgsField(wlFieldName, QVariant.Int) 
+            print(wlField)
+
+            domeBlockMergedVLpr.addAttributes([wlField])
+            domeBlockMergedVL.updateFields()            
+        
+            #and fills with corresponding overlay calc 
+            for feature in domeBlockMergedVL.getFeatures():
+                wlIndexes.append(feature.fieldNameIndex(wlFieldName))
+    
+                feature.setAttribute(feature.fieldNameIndex(wlFieldName), int(float(feature['wl'])) + overlay)
+                
+                domeBlockMergedVL.updateFeature(feature)
+
+        domeBlockMergedVL.commitChanges()
+        domeBlocks.append(domeBlockMerged['OUTPUT'])
+
+        i += 1
+        break
+
+        #SCRIPT NOW SUCCESSFULLY CREATES DOME AND MERGES WITH BLOCK
+        #IT MAKE THE WL OF THE BLOCK ITS MEAN - 1 STDV
+        #IT MAKES THE WL OF THE INNER THE MEAN OF THE BLOCK
+        
+        #----> THINGS TO LOOK INTO:
+        #SCRIPT KINDA STRANGELY STARTS WITH A RANDOM BLOCK EVERY TIME
+        #NEED TO ADDRESS THE ROUNDING OF THE WL DURING CALCS TO PRESERVE THE HALF FT INTERVALS
+        #EVENTUALLY WOULD BE SMART TO MAKE DEBUGGING FUNCTIONS, ESPECIALLY FOR INPUTS TO TELL THE USER WHAT WENT WRONG
+        #ALSO WOULD BE GOOD TO RUN BACK THROUGH AND MAKE SURE EVERYTHING IS WELL COMMENTED
+       
     #going through every option 
     n = 0 
+    print(domeBlocks)
     for index in wlIndexes:
         #creating domes for each overlay option 
-        domedWTOutputPath = outputFolder + "/mergedDomedWT_" + str(overlayOptions[n])
-        domedWaterTable = domedWT(splitBlocks, domedWTOutputPath, index)
+        domedWTOutputPath = outputFolder
+        domedWaterTable = domedWT(domeBlocks, domedWTOutputPath, index)
+        
 
         #creating overlay
-        domedOverlayOutputPath = outputFolder + "/domedOverlay_" + str(overlayOptions[n])
-        overlay = rasterSubtractor(dem, domedWaterTable, domedOverlayOutputPath)
+        domedOverlayOutputPath = outputFolder
+        overlay = rasterSubtractor(dem, domedWaterTable['OUTPUT'], domedOverlayOutputPath)
+        break
 
+    #--------------NOT DEBUGGED YET---------------------------------------------------------
+
+
+'''
         #creating histogram
         rasterHistOutput = outputFolder + "/rasterHist_" + str(overlayOptions[n])
         rasterHist(overlay, blocks, rasterHistOutput)
 
         n += 1
+#--------------NOT DEBUGGED YET---------------------------------------------------------
 
 '''
 
