@@ -397,8 +397,10 @@ def autoOverlay(blocks, dem, outputFolder):
         #IT MAKES THE WL OF THE INNER THE MEAN OF THE BLOCK
         
         #----> THINGS TO LOOK INTO:
-        #SCRIPT KINDA STRANGELY STARTS WITH A RANDOM BLOCK EVERY TIME
+        #NEED TO CHANGE UP NAMES FOR OVERLAY FUNCTION / ALL FUNCTIONS IN ORDER TO AVOID OVERWRITING
+        # SCRIPT KINDA STRANGELY STARTS WITH A RANDOM BLOCK EVERY TIME
         #NEED TO ADDRESS THE ROUNDING OF THE WL DURING CALCS TO PRESERVE THE HALF FT INTERVALS
+        #WOULD BE NICE TO CREATE FOLDERS TO PUT OUTPUTS IN FOR ORGANIZATION
         #EVENTUALLY WOULD BE SMART TO MAKE DEBUGGING FUNCTIONS, ESPECIALLY FOR INPUTS TO TELL THE USER WHAT WENT WRONG
         #ALSO WOULD BE GOOD TO RUN BACK THROUGH AND MAKE SURE EVERYTHING IS WELL COMMENTED
        
@@ -414,7 +416,7 @@ def autoOverlay(blocks, dem, outputFolder):
         #creating overlay
         domedOverlayOutputPath = outputFolder
         overlay = rasterSubtractor(dem, domedWaterTable['OUTPUT'], domedOverlayOutputPath)
-        break
+        n += 1
 
     #--------------NOT DEBUGGED YET---------------------------------------------------------
 
@@ -424,7 +426,7 @@ def autoOverlay(blocks, dem, outputFolder):
         rasterHistOutput = outputFolder + "/rasterHist_" + str(overlayOptions[n])
         rasterHist(overlay, blocks, rasterHistOutput)
 
-        n += 1
+        
 #--------------NOT DEBUGGED YET---------------------------------------------------------
 
 '''
