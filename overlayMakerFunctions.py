@@ -29,11 +29,10 @@ def makeFolder(parentFolderName, newFolderName, childFileName = 'null'):
 
 #RASTER SUBTRACTOR: Creates a raster overlay
 def rasterSubtractor(dem, waterTable, outputFolder, opt = 0):
-    print("\n~ Performing Raster Subtraction ~\n")
+    print("\n~ Performing Raster Subtraction ~")
     #subtracting flat raster of blocks from DEM using raster calculator
-    #getting basename of file being used
     
-    outputPath = outputFolder + "/overlay_option:" + opt + "_standard"
+    outputPath = outputFolder + "/overlay_option_" + str(opt) + ".tif"
     
     topDEM = QgsRasterLayer(dem, "topDEM")
 
@@ -55,7 +54,7 @@ def rasterSubtractor(dem, waterTable, outputFolder, opt = 0):
 
     calc.processCalculation()
     
-    print("\nOVERLAY GENERATED!: '" + outputPath + "'\n")
+    print("OVERLAY GENERATED!: '" + outputPath + "'\n")
 
     return calc
 
@@ -155,7 +154,7 @@ def flatWT(blocks, outputFolder):
 
 #DOMED WATER TABLE GENERATOR: Creates a domed water table raster for specified blocks
 def domedWT(domedBlocks = [], outputFolder = str, columnIndicator = 2, opt = int):
-    print("\n~ Performing creation of domed water table ~\n")
+    print("\n~ Performing creation of domed water table: Option " + str(opt))
     
     #saving sources of clipped domes in order to merge later
     clippedDomes = []
@@ -179,11 +178,11 @@ def domedWT(domedBlocks = [], outputFolder = str, columnIndicator = 2, opt = int
         interpolationData = dome + '|layername=' + baseName +'::~::0::~::' + str(columnIndicator) + '::~::2'
 
         #calculating rough dome and adding to map viewer
-        roughOutput = outputFolder + "/" + baseName + "_domeRough_" + str(columnIndicator) + ".tif"
-        clippedOutput = outputFolder + "/" + baseName + "_domeClipped_" + str(columnIndicator) + ".tif"
+        roughOutput = outputFolder + "/" + baseName + "_domeRough_" + str(opt) + ".tif"
+        clippedOutput = outputFolder + "/" + baseName + "_domeClipped_" + str(opt) + ".tif"
         
         domeRough = processing.run("qgis:tininterpolation", {'INTERPOLATION_DATA':interpolationData,'METHOD':0,'EXTENT':extent,'PIXEL_SIZE':15,'OUTPUT': roughOutput})
-        print("Rough dome created: " + domeRough['OUTPUT'])
+        #print("Rough dome created: " + domeRough['OUTPUT'])
 
         #clipping dome to block
         domeClipped = processing.run("gdal:cliprasterbyextent", {'INPUT':domeRough['OUTPUT'],'PROJWIN': extent,'OVERCRS':False,'NODATA':None,'OPTIONS':None,'DATA_TYPE':0,'EXTRA':'','OUTPUT':clippedOutput})
@@ -194,7 +193,7 @@ def domedWT(domedBlocks = [], outputFolder = str, columnIndicator = 2, opt = int
     #merging all domes    
     merge = processing.run("gdal:merge", {'INPUT':clippedDomes,'PCT':False,'SEPARATE':False,'NODATA_INPUT':None,'NODATA_OUTPUT':0,'OPTIONS':None,'EXTRA':'','DATA_TYPE':5,'OUTPUT':outputFolder + '/all_domedWT_merged_' + str(opt) + "ft.tif"})
     
-    print("COMPLETED DOME: " + merge['OUTPUT'])
+    print("COMPLETED DOME: " + merge['OUTPUT'] + "\n")
 
     return merge
 
@@ -219,7 +218,7 @@ def roadCalc(dem, roads, WT, outputFolder):
 
 #AUTO OVERLAY: takes in blocks and a dem and outputs 5 overlay options and associated histograms
 def autoOverlay(blocks, dem, outputFolder):
-    print("\n~ Starting auto-overlay script ~\n")
+    print("\n~ Starting auto-overlay script ~")
 
     #adding other wl columns for overlay options
     overlayOptions = [0, 1, 2, -1, -2]
@@ -230,22 +229,43 @@ def autoOverlay(blocks, dem, outputFolder):
     #calculating DEM stats: count, sum, mean, stdv
     demStats = processing.run("native:zonalstatisticsfb", {'INPUT':blocks,'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':makeFolder(outputFolder, "initialBlockDEMStats", "stats")})
     
-    print("\n--> Initial block DEM Stats Created: " + "'" + demStats['OUTPUT'] + "'\n")
+    print("\n---------------------------------------------------------------------------------------------------------------------")
+    print("\n-> Initial block DEM Stats Created: " + "'" + demStats['OUTPUT'] + "'\n")
 
     #creating vector layer for demStats file
     demStatsVL = QgsVectorLayer(demStats['OUTPUT'], "DEMStats")
-    
-    #adding wl column to block (mean - 1stdv)
+
+    #creating a wl field for the blocks
+    blockWLs = QgsField("wl", QVariant.Double) 
+
+    #opening editor
     with edit(demStatsVL):
+        #getting data provider
+        demStatsVLpr = demStatsVL.dataProvider()
+        #adding wl
+        demStatsVLpr.addAttributes([blockWLs])
+        demStatsVL.updateFields()
+
+        #adding wl (mean - 1stdv)
         for feature in demStatsVL.getFeatures():
-            feature.setAttribute(feature.fieldNameIndex('wl'), feature['_mean'] - feature['_stdev'])
+            feature.setAttribute(feature.fieldNameIndex('wl'), round((feature['_mean'] - feature['_stdev']) * 2) / 2)
             demStatsVL.updateFeature(feature)
     
     #splitting each block into its own layer
     splitBlocksInput = demStats["OUTPUT"] 
     splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'block','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':outputFolder + "/allBlocksSplit"})
     
-    print("\n--> Blocks split: " + "'" + splitBlocks['OUTPUT'] + "'\n")
+    print("--> Blocks split: " + "'" + splitBlocks['OUTPUT'])
+    print("\n---------------------------------------------------------------------------------------------------------------------")
+
+
+    TODStatsFolder = makeFolder(outputFolder, "TODStats")
+    TODVectors = makeFolder(outputFolder, "TODVectos")
+    blocksInnerOuter = makeFolder(outputFolder, "blocks_inner+outer")
+    overlaysFolder = makeFolder(outputFolder, "Completed Overlays")
+    domedWTOutputPath = makeFolder(outputFolder, "domedWaterTables")
+    histogramsFolder = makeFolder(outputFolder, "Histograms")
+
 
     
     i = 0
@@ -253,6 +273,8 @@ def autoOverlay(blocks, dem, outputFolder):
     for b in splitBlocks['OUTPUT_LAYERS']:
         #Getting base name of current block 
         currentBlock = os.path.basename(b).split(".")[0] 
+
+        print("\n>>>>>>>>>>>>>>> Analyzing block " + currentBlock + "<<<<<<<<<<<<<<<")
         
         #turning block path into a vector layer
         block = QgsVectorLayer(b, "block", "ogr")
@@ -267,15 +289,15 @@ def autoOverlay(blocks, dem, outputFolder):
         buffered = processing.run("native:buffer", {'INPUT':clippedGrid['OUTPUT'],'DISTANCE':599.99959999999948,'SEGMENTS':5,'END_CAP_STYLE':0,'JOIN_STYLE':0,'MITER_LIMIT':2,'DISSOLVE':False,'SEPARATE_DISJOINT':False,'OUTPUT':'TEMPORARY_OUTPUT'})
         
         #zonal stats on the grid vectors
-        TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':buffered['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':makeFolder(outputFolder, "TODStats", currentBlock + "_TODStats")})
+        TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':buffered['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':TODStatsFolder + "/" + currentBlock + "_TODStats"})
         
-        print("\n--> Block grid created: " + "'" + TODStats['OUTPUT'] + "'\n")
+        print("\n-> Block grid created: " + "'" + TODStats['OUTPUT'])
 
         #Making this into a vector layer
         TODStatsVL = QgsVectorLayer(TODStats['OUTPUT'], "TODStatsVL" + str(i), "ogr")
         
         #adding a wl column for easy merging
-        wl = QgsField("wl", QVariant.Int) 
+        wl = QgsField("wl", QVariant.Double) 
 
         #editing vector layer
         TODStatsVL.startEditing()
@@ -315,13 +337,19 @@ def autoOverlay(blocks, dem, outputFolder):
             save_options.layerOptions = ["OVERWRITE=YES"]
             transform_context = QgsProject.instance().transformContext()
 
-            topOfDome = QgsVectorFileWriter.writeAsVectorFormatV3(layer=TODStatsVL, fileName=makeFolder(outputFolder, "TODVectos", currentBlock + "_TOD"), transformContext=transform_context, options=save_options)
-        else:
-            print("\n--> ERROR: No features selected from grid")
+            topOfDome = QgsVectorFileWriter.writeAsVectorFormatV3(layer=TODStatsVL, fileName=TODVectors + "/" + currentBlock + "_TOD", transformContext=transform_context, options=save_options)
+        
+            print("--> Dome selected for " + currentBlock)
 
-        #merging TOD with block         
-        domeBlockMerged = processing.run("native:mergevectorlayers", {'LAYERS':[b, topOfDome[2]],'CRS':None,'OUTPUT':makeFolder(outputFolder, "blocks_inner+outer", currentBlock + "_inner+outer")})
-        print("\n--> Merged top of dome with block: " + "'" + domeBlockMerged['OUTPUT'] + "'\n")
+        
+        else:
+            print("\n--> ERROR: No features selected from grid\n")
+        
+
+
+        #merging TOD with block        
+        domeBlockMerged = processing.run("native:mergevectorlayers", {'LAYERS':[b, topOfDome[2]],'CRS':None,'OUTPUT':blocksInnerOuter + "/" + currentBlock + "_inner+outer"})
+        print("---> Merged top of dome with block: " + "'" + domeBlockMerged['OUTPUT'])
 
         #making a vector layer from the merged path
         domeBlockMergedVL = QgsVectorLayer(domeBlockMerged['OUTPUT'], "domeBlockMergedVL", "ogr")
@@ -362,7 +390,7 @@ def autoOverlay(blocks, dem, outputFolder):
         for overlay in overlayOptions:
             wlFieldName = "wl_" + str(overlay)
 
-            wlField = QgsField(wlFieldName, QVariant.Int) 
+            wlField = QgsField(wlFieldName, QVariant.Double) 
 
             domeBlockMergedVLpr.addAttributes([wlField])
             domeBlockMergedVL.updateFields()            
@@ -370,47 +398,51 @@ def autoOverlay(blocks, dem, outputFolder):
             #and fills with corresponding overlay calc 
             for feature in domeBlockMergedVL.getFeatures():
     
-                feature.setAttribute(feature.fieldNameIndex(wlFieldName), int(float(feature['wl'])) + overlay)
+                feature.setAttribute(feature.fieldNameIndex(wlFieldName), float(feature['wl']) + overlay)
                 
                 domeBlockMergedVL.updateFeature(feature)
 
             wlIndexes.append(feature.fieldNameIndex(wlFieldName))
-            print("appended: " +str(feature.fieldNameIndex(wlFieldName)))
 
 
         domeBlockMergedVL.commitChanges()
         domeBlocks.append(domeBlockMerged['OUTPUT'])
         
-        print("\n--> Initial block dome vector calculated and merged: " + "'" + domeBlockMerged['OUTPUT'] + "'\n")
+        print("----> Initial block dome vector created and wls calculated: " + "'" + domeBlockMerged['OUTPUT'] + "'\n")
 
         i += 1
-        break
+       # break
 
     #going through every option 
     
-
-    print(len(wlIndexes))
-    print(len(overlayOptions))
-
     overlayOptionIndex = 0
 
-    domedWTOutputPath = makeFolder(outputFolder, "domedWaterTables")
+
+    print("\n--------------------------CREATING DOMES AND OVERYLAYS--------------------------\n")
+    domedWaterTable = None
+
+
 
     for index in wlIndexes:
         #creating domes for each overlay option 
        
         domedWaterTable = domedWT(domeBlocks, domedWTOutputPath, index, overlayOptions[overlayOptionIndex])
 
-        if overlayOptionIndex < 4:
-            overlayOptionIndex += 1
-        
-        
+        #resampling dome to match dem so it can successfully subtract it
+        resampledDomeOutput = domedWTOutputPath + "/" + str(overlayOptions[overlayOptionIndex]) + "_resampled"
+        DEMbaseName = os.path.basename(dem).split(".")[0]
+
+        resampledDEMOutput = domedWTOutputPath + "/" + DEMbaseName + "_resampled.tif"
+        processing.run("native:alignrasters", {'LAYERS':[{'inputFile': domedWaterTable['OUTPUT'],'outputFile': resampledDomeOutput,'resampleMethod': 0,'rescale': False},{'inputFile': dem,'outputFile': resampledDEMOutput,'resampleMethod': 0,'rescale': False}],'REFERENCE_LAYER':dem,'CRS':None,'CELL_SIZE_X':None,'CELL_SIZE_Y':None,'GRID_OFFSET_X':None,'GRID_OFFSET_Y':None,'EXTENT':None})
 
         #creating overlay
-        #overlay = rasterSubtractor(dem, domedWaterTable['OUTPUT'], outputFolder, overlayOptions[wlIndexes.index(index)])
+        overlay = rasterSubtractor(dem, resampledDomeOutput, overlaysFolder, overlayOptions[overlayOptionIndex])
 
+        if overlayOptionIndex < len(overlayOptions):
+            overlayOptionIndex += 1
 
-    #--------------NOT DEBUGGED YET---------------------------------------------------------
+    print("\n--------------------------AUTO-OVERLAY COMPLETE--------------------------\n")
+
 
 
 '''
@@ -435,7 +467,7 @@ def autoOverlay(blocks, dem, outputFolder):
         #ALSO WOULD BE GOOD TO RUN BACK THROUGH AND MAKE SURE EVERYTHING IS WELL COMMENTED
        #WOULD LIKE TO PUT ALL OUTPUTS IN AUOTOVERLAY FOLDER THAT WILL REWRITE OR MAKE NEW EVERY TIME
        #script breaks when trying to run multiple blocks 
-
+    #finish readme
 
 
         

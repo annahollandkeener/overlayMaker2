@@ -17,7 +17,7 @@ import overlayMakerFunctions
 
 #------------USER INPUTS--------------------
 #Shapefile (SHP) for block boundaries you would like flat overlays for
-blockBoundaries =  "C:/Users/annah/Downloads/updated_blocks_test.shp"
+blockBoundaries =  "C:/Users/annah/Downloads/per_blocks_no_wl.shp"
 
 #Shapefile (SHP) for block boundaries you would like domed overlays for
 domedBlocksBoundaries = []
@@ -43,7 +43,7 @@ overlayMakerFunctions.autoOverlay(blockBoundaries, groundDEM, outputFolder)
 # Finally, exitQgis() is called to remove the
 # provider and layer registries from memory
 
-print("DONE! :)")
+print("DONE! :)\n")
 
 qgs.exitQgis()
 
