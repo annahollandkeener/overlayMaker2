@@ -36,8 +36,10 @@ def rasterSubtractor(dem, waterTable, outputFolder):
         calc.processCalculation()
         
         print("\nOVERLAY GENERATED!: '" + outputPath + "'\n")
+        
+        print(calc)
 
-        return calc
+        return outputPath
         
 
 
