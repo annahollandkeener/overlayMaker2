@@ -274,7 +274,6 @@ def autoOverlay(blocks, dem, outputFolder):
     print("--> Blocks split: " + "'" + splitBlocks['OUTPUT'])
     print("\n---------------------------------------------------------------------------------------------------------------------")
 
-    i = 0
     #making grid for each block to determine highest point and add this as a dome feature to the block
     for b in splitBlocks['OUTPUT_LAYERS']:
         #Getting base name of current block 
@@ -351,8 +350,6 @@ def autoOverlay(blocks, dem, outputFolder):
         else:
             print("\n--> ERROR: No features selected from grid\n")
         
-
-
         #merging TOD with block        
         domeBlockMerged = processing.run("native:mergevectorlayers", {'LAYERS':[b, topOfDome[2]],'CRS':None,'OUTPUT':blocksInnerOuter + "/" + currentBlock + "_inner+outer"})
         print("---> Merged top of dome with block: " + "'" + domeBlockMerged['OUTPUT'])
@@ -413,7 +410,6 @@ def autoOverlay(blocks, dem, outputFolder):
         
         print("----> Initial block dome vector created and wls calculated: " + "'" + domeBlockMerged['OUTPUT'] + "'\n")
 
-        i += 1
         
 
     #going through every option 
