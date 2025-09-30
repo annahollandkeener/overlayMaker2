@@ -274,7 +274,7 @@ def autoOverlay(blocks, dem, outputFolder):
         #Getting base name of current block 
         currentBlock = os.path.basename(b).split(".")[0] 
 
-        print("\n>>>>>>>>>>>>>>> Analyzing block " + currentBlock + "<<<<<<<<<<<<<<<")
+        print("\n>>>>>>>>>>>>>>> Analyzing " + currentBlock + " <<<<<<<<<<<<<<<")
         
         #turning block path into a vector layer
         block = QgsVectorLayer(b, "block", "ogr")
@@ -461,13 +461,11 @@ def autoOverlay(blocks, dem, outputFolder):
         
         #----> THINGS TO LOOK INTO:
         #NEED TO CHANGE UP NAMES FOR OVERLAY FUNCTION / ALL FUNCTIONS IN ORDER TO AVOID OVERWRITING
-        #NEED TO ADDRESS THE ROUNDING OF THE WL DURING CALCS TO PRESERVE THE HALF FT INTERVALS
         #WOULD BE NICE TO CREATE DIFFERENT FOLDERS FOR EACH OPTION FOR DOMED BLOCKS AND MERGED DOMED BLOCKS
         #EVENTUALLY WOULD BE SMART TO MAKE DEBUGGING FUNCTIONS, ESPECIALLY FOR INPUTS TO TELL THE USER WHAT WENT WRONG
         #ALSO WOULD BE GOOD TO RUN BACK THROUGH AND MAKE SURE EVERYTHING IS WELL COMMENTED
        #WOULD LIKE TO PUT ALL OUTPUTS IN AUOTOVERLAY FOLDER THAT WILL REWRITE OR MAKE NEW EVERY TIME
-       #script breaks when trying to run multiple blocks 
-    #finish readme
+        #finish readme
 
 
         
