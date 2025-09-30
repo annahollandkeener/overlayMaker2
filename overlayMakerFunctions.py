@@ -56,7 +56,9 @@ def rasterSubtractor(dem, waterTable, outputFolder, opt = 0):
     
     print("OVERLAY GENERATED!: '" + outputPath + "'\n")
 
-    return calc
+    print(calc)
+
+    return outputPath
 
 #RASTER HISTOGRAM GENERATOR: Creates a histogram for an overlay/raster for specified blocks
 def rasterHist(overlay, blocks, outputFolder, reclass = None):
@@ -81,12 +83,12 @@ def rasterHist(overlay, blocks, outputFolder, reclass = None):
     gdal.VectorTranslate(zonalHistCSV, zonalHistOP, options=options)
 
     #locating csv because apparently the creation of the csv from gpkg creates a folder to hold the csv
-    zonalHistCSV2 = zonalHistCSV + "/" + "updated_blocks_overlay_zonalHist.csv"
+    zonalHistCSV2 = zonalHistCSV + "/" + baseName + "zonalHist.csv"
     #reading the csv
     df = pd.read_csv(zonalHistCSV2)
 
     # Display the first few rows of the DataFrame
-    print(df.head())
+    #print(df.head())
 
     histogramData = []
 
@@ -128,7 +130,8 @@ def rasterHist(overlay, blocks, outputFolder, reclass = None):
             histNameNum += 1
 
     plt.tight_layout()
-    plt.show()
+    histogramWindowName = outputFolder + "/" + baseName + "_hist"
+    plt.savefig(histogramWindowName)
 
 #FLAT WATER TABLE GENERATOR: Creates a flat water table raster for specified blocks
 def flatWT(blocks, outputFolder):
@@ -220,16 +223,28 @@ def roadCalc(dem, roads, WT, outputFolder):
 def autoOverlay(blocks, dem, outputFolder):
     print("\n~ Starting auto-overlay script ~")
 
+    TODStatsFolder = makeFolder(outputFolder, "TODStats")
+    TODVectors = makeFolder(outputFolder, "TODVectos")
+    blocksInnerOuter = makeFolder(outputFolder, "blocks_inner+outer")
+    overlaysFolder = makeFolder(outputFolder, "Completed Overlays")
+    domedWTOutputPath = makeFolder(outputFolder, "domedWaterTables")
+    histogramsFolder = makeFolder(outputFolder, "Histograms")
+    histogramsProgFolder = makeFolder(histogramsFolder, "Processing")
+    demStatsFolder = makeFolder(outputFolder, "initialBlockDEMStats", "stats")
+
     #adding other wl columns for overlay options
     overlayOptions = [0, 1, 2, -1, -2]
+
+    #variable for getting the index of the wl columns so we can have the proper TIN interp settings later
+    wlIndexes = []
 
     #LIST FOR HOLDING MERGED BLOCKS WITH INNER AND OUTER BOUNDARIES
     domeBlocks = []
 
     #calculating DEM stats: count, sum, mean, stdv
-    demStats = processing.run("native:zonalstatisticsfb", {'INPUT':blocks,'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':makeFolder(outputFolder, "initialBlockDEMStats", "stats")})
+    demStats = processing.run("native:zonalstatisticsfb", {'INPUT':blocks,'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':demStatsFolder})
     
-    print("\n---------------------------------------------------------------------------------------------------------------------")
+    print("\n---------------------------------------------INITIAL BLOCK ANALYSIS------------------------------------------------------------------------")
     print("\n-> Initial block DEM Stats Created: " + "'" + demStats['OUTPUT'] + "'\n")
 
     #creating vector layer for demStats file
@@ -248,26 +263,17 @@ def autoOverlay(blocks, dem, outputFolder):
 
         #adding wl (mean - 1stdv)
         for feature in demStatsVL.getFeatures():
-            feature.setAttribute(feature.fieldNameIndex('wl'), round((feature['_mean'] - feature['_stdev']) * 2) / 2)
+            feature.setAttribute(feature.fieldNameIndex('wl'), round(round((feature['_mean'] - feature['_stdev']) * 2) / 2, 2))
             demStatsVL.updateFeature(feature)
     
     #splitting each block into its own layer
     splitBlocksInput = demStats["OUTPUT"] 
+    print(splitBlocksInput)
     splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'block','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':outputFolder + "/allBlocksSplit"})
     
     print("--> Blocks split: " + "'" + splitBlocks['OUTPUT'])
     print("\n---------------------------------------------------------------------------------------------------------------------")
 
-
-    TODStatsFolder = makeFolder(outputFolder, "TODStats")
-    TODVectors = makeFolder(outputFolder, "TODVectos")
-    blocksInnerOuter = makeFolder(outputFolder, "blocks_inner+outer")
-    overlaysFolder = makeFolder(outputFolder, "Completed Overlays")
-    domedWTOutputPath = makeFolder(outputFolder, "domedWaterTables")
-    histogramsFolder = makeFolder(outputFolder, "Histograms")
-
-
-    
     i = 0
     #making grid for each block to determine highest point and add this as a dome feature to the block
     for b in splitBlocks['OUTPUT_LAYERS']:
@@ -354,9 +360,6 @@ def autoOverlay(blocks, dem, outputFolder):
         #making a vector layer from the merged path
         domeBlockMergedVL = QgsVectorLayer(domeBlockMerged['OUTPUT'], "domeBlockMergedVL", "ogr")
 
-        #variable for getting the index of the wl columns so we can have the proper TIN interp settings later
-        wlIndexes = []
-
         #make sure to include the base overlay option 
         attribute = domeBlockMergedVL.fields().indexOf('wl')
         blockAttrIndex = domeBlockMergedVL.fields().indexOf('block')
@@ -411,7 +414,7 @@ def autoOverlay(blocks, dem, outputFolder):
         print("----> Initial block dome vector created and wls calculated: " + "'" + domeBlockMerged['OUTPUT'] + "'\n")
 
         i += 1
-       # break
+        
 
     #going through every option 
     
@@ -420,8 +423,6 @@ def autoOverlay(blocks, dem, outputFolder):
 
     print("\n--------------------------CREATING DOMES AND OVERYLAYS--------------------------\n")
     domedWaterTable = None
-
-
 
     for index in wlIndexes:
         #creating domes for each overlay option 
@@ -435,10 +436,15 @@ def autoOverlay(blocks, dem, outputFolder):
         resampledDEMOutput = domedWTOutputPath + "/" + DEMbaseName + "_resampled.tif"
         processing.run("native:alignrasters", {'LAYERS':[{'inputFile': domedWaterTable['OUTPUT'],'outputFile': resampledDomeOutput,'resampleMethod': 0,'rescale': False},{'inputFile': dem,'outputFile': resampledDEMOutput,'resampleMethod': 0,'rescale': False}],'REFERENCE_LAYER':dem,'CRS':None,'CELL_SIZE_X':None,'CELL_SIZE_Y':None,'GRID_OFFSET_X':None,'GRID_OFFSET_Y':None,'EXTENT':None})
 
+        print("----> Dome resampled to match DEM")
+
         #creating overlay
         overlay = rasterSubtractor(dem, resampledDomeOutput, overlaysFolder, overlayOptions[overlayOptionIndex])
 
-        if overlayOptionIndex < len(overlayOptions):
+        #creating histogram
+        rasterHist(overlay, blocks, histogramsProgFolder)
+
+        if overlayOptionIndex <= (len(overlayOptions) - 1):
             overlayOptionIndex += 1
 
     print("\n--------------------------AUTO-OVERLAY COMPLETE--------------------------\n")
@@ -446,13 +452,7 @@ def autoOverlay(blocks, dem, outputFolder):
 
 
 '''
-        #creating histogram
-        rasterHistOutput = outputFolder + "/rasterHist_" + str(overlayOptions[n])
-        rasterHist(overlay, blocks, rasterHistOutput)
-
         
-#--------------NOT DEBUGGED YET---------------------------------------------------------
-
 '''
 
      #SCRIPT NOW SUCCESSFULLY CREATES DOME AT EACH DIFFERENT OPTION
@@ -465,13 +465,15 @@ def autoOverlay(blocks, dem, outputFolder):
         #EVENTUALLY WOULD BE SMART TO MAKE DEBUGGING FUNCTIONS, ESPECIALLY FOR INPUTS TO TELL THE USER WHAT WENT WRONG
         #ALSO WOULD BE GOOD TO RUN BACK THROUGH AND MAKE SURE EVERYTHING IS WELL COMMENTED
        #WOULD LIKE TO PUT ALL OUTPUTS IN AUOTOVERLAY FOLDER THAT WILL REWRITE OR MAKE NEW EVERY TIME
-        #finish readme
+       #script breaks when trying to run multiple blocks 
+    #finish readme
+        # create cubsequent folders for histogram organization?
 
-
-        
-        
-        
-
-
-
+#debugging funcs brainstormg
+#   checking for block column in block input and writing warning if there is no block column 
+#   checking for wl column in block input and either deleting or using that as the default 
+#   checking that the input blocks layer has been split into single parts 
+#    checking for presence of folder of outputs
+#   make sure no repeat names / features in block input 
+#autoInstalls geopandas if not installed? 
 

@@ -16,25 +16,25 @@ qgs.initQgis()
 import overlayMakerFunctions
 
 #------------USER INPUTS--------------------
-#Shapefile (SHP) for block boundaries you would like flat overlays for
-blockBoundaries =  "C:/Users/annah/Downloads/per_blocks_no_wl.shp"
+#Shapefile (SHP) for block boundaries 
+blockBoundaries =  "S:/KBE/Prj_2024/Pantheon Carolina Ranch/GIS/withers_blocks_singleparts.shp"
 
 #Shapefile (SHP) for block boundaries you would like domed overlays for
 domedBlocksBoundaries = []
 
 #DEM of ground surface for project area
-groundDEM = "C:/wfh/per1/old/elevation/CarolinaRanch_2020lidar_3ft (2).tif"
+groundDEM = "S:/KBE/Prj_2024/Pantheon Carolina Ranch/GIS/elevation/2020_lidar_2264_ft.tif"
 
 #Rasterized (TIF) version of your block boundaries
-waterTableDEM = "C:/wfh/python/overlayMaker/testmaterials/E11A/E11A.shp"
+waterTableDEM = ""
 
 #Vector file (SHP) of the roads within your project area
-projectRoads = "C:/wfh/python/overlayMaker/testmaterials/E11A/E11A.shp"
+projectRoads = ""
      
-overlay = "C:/wfh/per1/updated/updated_blocks_overlay.tif"
+overlay = ""
 
 #Where you would like the results to end up
-outputFolder = "C:/wfh/python/overlayMaker/testmaterials/autoOverlay"
+outputFolder = "K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
 
 #-------------EXECUTIONS---------------------
 overlayMakerFunctions.autoOverlay(blockBoundaries, groundDEM, outputFolder)
@@ -43,7 +43,7 @@ overlayMakerFunctions.autoOverlay(blockBoundaries, groundDEM, outputFolder)
 # Finally, exitQgis() is called to remove the
 # provider and layer registries from memory
 
-print("DONE! :)\n")
+print("\nDONE! :)\n")
 
 qgs.exitQgis()
 
