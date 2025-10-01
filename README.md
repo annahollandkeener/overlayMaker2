@@ -1,20 +1,20 @@
 # <b><span style="color: #7faeb3;"> overlayMaker README </span></b>
-
+---
 ## The 'overlayMaker' is a suite of tools built from available pyqgis functions that allows for an efficient creation and analysis of overlays for pocosin restoration projects
-
+---
 
 ###  <span style="color: #7faeb3"> Setting Up the 'overlayMaker' Workspace: </span>
 * Activate your qgis environment 
-    * See [<i>link to google docs explaining creating environment</i>] for info on how to create a pyqgis environment
+    * See the [Python and QGIS Guide](https://docs.google.com/document/d/1FuxWWG3lmFlltaK0mbh07ZeaEtTw5XA0LBubkZIZ6Oc/edit?tab=t.0) for info on how to create a pyqgis environment
 * Open VSCode 
 * Navigate to chosen directory
 * Clone the repository into your chosen directory 
-    * See [<i>link to google docs explaining github and cloning</i>]
+    * See [Python and QGIS Guide](https://docs.google.com/document/d/1FuxWWG3lmFlltaK0mbh07ZeaEtTw5XA0LBubkZIZ6Oc/edit?tab=t.0) for info on Github and cloning repositories
 * Operate the available functions in the repository by calling and running from the 'main.py' file 
 ---
 
 ### <span style="color: #7faeb3"> Making your own functions: </span>
-If you wish to make custom functions for overlayMaker, you can use the 'customFunctions.py' file to create your own. This file is automatically imported into the main file, from which your functions can be called and ran. 
+If you wish to make custom functions for your overlayMaker, you can use the 'customFunctions.py' file to create your own. This file is automatically imported into the main file, from which your functions can be called and ran. 
 
 ----
 
@@ -112,16 +112,16 @@ If you wish to make custom functions for overlayMaker, you can use the 'customFu
 
 ### <u><b> 'roadCalc' [UNDER CONSTRUCION]</b></u> 
 
-* <i> Takes in the project dem, a shapefile of roads in the project area, a rasterized water table, and an output folder. </i>
-* <i> Creates a buffer of the roads input. </i>
-* <i> Clips the project dem to the buffered roads. </i>
-* <i> Creates an overlay for the roads. </i>
-* <i> Reclassifies the road raster (<0, 0-1, 1-2, 2-3, >3). </i>
-* <i> Vectorizes the road raster. </i>
-* <i> Exports each range into its own vector file. </i>
-* <i> Calculates the length of each vector file in feet. </i>
-* <i> Calculates the sum of all of the lengths. </i>
-* <i> Creates a csv file output with ranges and their sum lengths in feet. </i>
+* <i> Takes in the project dem, a shapefile of roads in the project area, a rasterized water table, and an output folder </i>
+* <i> Creates a buffer of the roads input </i>
+* <i> Clips the project dem to the buffered roads </i>
+* <i> Creates an overlay for the roads </i>
+* <i> Reclassifies the road raster (<0, 0-1, 1-2, 2-3, >3) </i>
+* <i> Vectorizes the road raster </i>
+* <i> Exports each range into its own vector file </i>
+* <i> Calculates the length of each vector file in feet </i>
+* <i> Calculates the sum of all of the lengths </i>
+* <i> Creates a csv file output with ranges and their sum lengths in feet </i>
 
 
 | Input | Descriprtion | Type |
