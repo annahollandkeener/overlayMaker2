@@ -150,7 +150,6 @@ def flatWT(blocks, outputFolder):
     #create a flat raster based on the waterlevel of each blocks
     blockFlatRaster = processing.run("gdal:rasterize", {'INPUT':blocks,'FIELD':'wl','BURN':0,'USE_Z':False,'UNITS':1,'WIDTH':3,'HEIGHT':3,'EXTENT':None,'NODATA':0,'OPTIONS':None,'DATA_TYPE':5,'INIT':None,'INVERT':False,'EXTRA':'','OUTPUT':outputPath})
 
-
     print(">>> FLAT WATER TABLE GENERATED!: " + blockFlatRaster['OUTPUT'] + "\n")
 
     return blockFlatRaster['OUTPUT']
@@ -201,6 +200,7 @@ def domedWT(domedBlocks = [], outputFolder = str, columnIndicator = 2, opt = int
     return merge
 
 #ROAD CALC: Creates a vector layer showing roads in the project area in need of potential raising
+#******UNDER CONSTRUCTION********
 def roadCalc(dem, roads, WT, outputFolder):
     print("\n~ Performing calculation of affected roads in project area ~\n")
 
@@ -222,6 +222,24 @@ def roadCalc(dem, roads, WT, outputFolder):
 #AUTO OVERLAY: takes in blocks and a dem and outputs 5 overlay options and associated histograms
 def autoOverlay(blocks, dem, outputFolder):
     print("\n~ Starting auto-overlay script ~")
+
+    #----------creating an autoOverlay folder to contain outputs------------
+    autoOverlayFolder = outputFolder + "/autoOverlay"
+
+    if not os.path.exists(autoOverlayFolder):
+        os.makedirs(autoOverlayFolder)
+        outputFolder = autoOverlayFolder
+    else:
+        # Folder already exists, find a unique name by appending a number
+        folder_name, _ = os.path.splitext(autoOverlayFolder) # Split to handle potential extensions, though not typical for folders
+        counter = 1
+        while True:
+            new_folder_path = f"{folder_name}({counter})"
+            if not os.path.exists(new_folder_path):
+                os.makedirs(new_folder_path)
+                outputFolder = new_folder_path
+            counter += 1
+    #-------------------------------------------------------------------------
 
     TODStatsFolder = makeFolder(outputFolder, "TODStats")
     TODVectors = makeFolder(outputFolder, "TODVectos")
@@ -346,7 +364,6 @@ def autoOverlay(blocks, dem, outputFolder):
         
             print("--> Dome selected for " + currentBlock)
 
-        
         else:
             print("\n--> ERROR: No features selected from grid\n")
         
@@ -361,7 +378,6 @@ def autoOverlay(blocks, dem, outputFolder):
         attribute = domeBlockMergedVL.fields().indexOf('wl')
         blockAttrIndex = domeBlockMergedVL.fields().indexOf('block')
        
-        
         #editing vector layer
         domeBlockMergedVL.startEditing()
 
@@ -410,12 +426,9 @@ def autoOverlay(blocks, dem, outputFolder):
         
         print("----> Initial block dome vector created and wls calculated: " + "'" + domeBlockMerged['OUTPUT'] + "'\n")
 
-        
-
     #going through every option 
     
     overlayOptionIndex = 0
-
 
     print("\n--------------------------CREATING DOMES AND OVERYLAYS--------------------------\n")
     domedWaterTable = None
@@ -447,23 +460,19 @@ def autoOverlay(blocks, dem, outputFolder):
 
 
 
-'''
-        
-'''
 
-     #SCRIPT NOW SUCCESSFULLY CREATES DOME AT EACH DIFFERENT OPTION
-        #IT MAKE THE WL OF THE BLOCK ITS MEAN - 1 STDV
-        #IT MAKES THE WL OF THE INNER THE MEAN OF THE BLOCK
-        
-        #----> THINGS TO LOOK INTO:
-        #NEED TO CHANGE UP NAMES FOR OVERLAY FUNCTION / ALL FUNCTIONS IN ORDER TO AVOID OVERWRITING
-        #WOULD BE NICE TO CREATE DIFFERENT FOLDERS FOR EACH OPTION FOR DOMED BLOCKS AND MERGED DOMED BLOCKS
-        #EVENTUALLY WOULD BE SMART TO MAKE DEBUGGING FUNCTIONS, ESPECIALLY FOR INPUTS TO TELL THE USER WHAT WENT WRONG
-        #ALSO WOULD BE GOOD TO RUN BACK THROUGH AND MAKE SURE EVERYTHING IS WELL COMMENTED
-       #WOULD LIKE TO PUT ALL OUTPUTS IN AUOTOVERLAY FOLDER THAT WILL REWRITE OR MAKE NEW EVERY TIME
-       #script breaks when trying to run multiple blocks 
-    #finish readme
-        # create cubsequent folders for histogram organization?
+#SCRIPT NOW SUCCESSFULLY CREATES DOME AT EACH DIFFERENT OPTION
+#IT MAKE THE WL OF THE BLOCK ITS MEAN - 1 STDV
+#IT MAKES THE WL OF THE INNER THE MEAN OF THE BLOCK
+
+#----> THINGS TO LOOK INTO:
+#WOULD BE NICE TO CREATE DIFFERENT FOLDERS FOR EACH OPTION FOR DOMED BLOCKS AND MERGED DOMED BLOCKS
+#EVENTUALLY WOULD BE SMART TO MAKE DEBUGGING FUNCTIONS, ESPECIALLY FOR INPUTS TO TELL THE USER WHAT WENT WRONG
+#ALSO WOULD BE GOOD TO RUN BACK THROUGH AND MAKE SURE EVERYTHING IS WELL COMMENTED
+#WOULD LIKE TO PUT ALL OUTPUTS IN AUOTOVERLAY FOLDER THAT WILL REWRITE OR MAKE NEW EVERY TIME
+#script breaks when trying to run multiple blocks 
+#finish readme
+#create cubsequent folders for histogram organization?
 
 #debugging funcs brainstormg
 #   checking for block column in block input and writing warning if there is no block column 

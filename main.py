@@ -36,9 +36,13 @@ overlay = ""
 #Where you would like the results to end up
 outputFolder = "K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
 
-#-------------EXECUTIONS---------------------
+#-------------CALL FUNCTIONS HERE---------------------
 overlayMakerFunctions.autoOverlay(blockBoundaries, groundDEM, outputFolder)
-#----------------------------------
+
+
+
+
+#-----------------------------------------------------
 
 # Finally, exitQgis() is called to remove the
 # provider and layer registries from memory
