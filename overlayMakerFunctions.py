@@ -459,8 +459,6 @@ def autoOverlay(blocks, dem, outputFolder):
     print("\n--------------------------AUTO-OVERLAY COMPLETE--------------------------\n")
 
 
-
-
 #SCRIPT NOW SUCCESSFULLY CREATES DOME AT EACH DIFFERENT OPTION
 #IT MAKE THE WL OF THE BLOCK ITS MEAN - 1 STDV
 #IT MAKES THE WL OF THE INNER THE MEAN OF THE BLOCK
@@ -470,15 +468,16 @@ def autoOverlay(blocks, dem, outputFolder):
 #EVENTUALLY WOULD BE SMART TO MAKE DEBUGGING FUNCTIONS, ESPECIALLY FOR INPUTS TO TELL THE USER WHAT WENT WRONG
 #ALSO WOULD BE GOOD TO RUN BACK THROUGH AND MAKE SURE EVERYTHING IS WELL COMMENTED
 #WOULD LIKE TO PUT ALL OUTPUTS IN AUOTOVERLAY FOLDER THAT WILL REWRITE OR MAKE NEW EVERY TIME
-#script breaks when trying to run multiple blocks 
 #finish readme
 #create cubsequent folders for histogram organization?
 
 #debugging funcs brainstormg
 #   checking for block column in block input and writing warning if there is no block column 
 #   checking for wl column in block input and either deleting or using that as the default 
+#               Warn the person there already is one
 #   checking that the input blocks layer has been split into single parts 
 #    checking for presence of folder of outputs
 #   make sure no repeat names / features in block input 
 #autoInstalls geopandas if not installed? 
+
 

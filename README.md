@@ -13,7 +13,7 @@
 * Operate the available functions in the repository by calling and running from the 'main.py' file 
 ---
 
-### <span style="color: #7faeb3"> Making your own functions: </span>
+### <span style="color: #7faeb3"> Making Your Own Functions: </span>
 If you wish to make custom functions for your overlayMaker, you can use the 'customFunctions.py' file to create your own. This file is automatically imported into the main file, from which your functions can be called and ran. 
 
 ----
