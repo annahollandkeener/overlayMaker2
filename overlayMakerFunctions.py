@@ -11,6 +11,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from qgis.core import edit, QgsVectorDataProvider, QgsVariantUtils
 
+#import tests
+import test
+
 #Starting processing
 Processing.initialize()
 
@@ -265,25 +268,27 @@ def autoOverlay(blocks, dem, outputFolder):
     print("\n---------------------------------------------INITIAL BLOCK ANALYSIS------------------------------------------------------------------------")
     print("\n-> Initial block DEM Stats Created: " + "'" + demStats['OUTPUT'] + "'\n")
 
-    #creating vector layer for demStats file
-    demStatsVL = QgsVectorLayer(demStats['OUTPUT'], "DEMStats")
+    #checking if WL column exists already or not, and adding it if so 
+    if test.isWLColumn(blocks) == False:
+        #creating vector layer for demStats file
+        demStatsVL = QgsVectorLayer(demStats['OUTPUT'], "DEMStats")
 
-    #creating a wl field for the blocks
-    blockWLs = QgsField("wl", QVariant.Double) 
+        #creating a wl field for the blocks
+        blockWLs = QgsField("wl", QVariant.Double) 
 
-    #opening editor
-    with edit(demStatsVL):
-        #getting data provider
-        demStatsVLpr = demStatsVL.dataProvider()
-        #adding wl
-        demStatsVLpr.addAttributes([blockWLs])
-        demStatsVL.updateFields()
+        #opening editor
+        with edit(demStatsVL):
+            #getting data provider
+            demStatsVLpr = demStatsVL.dataProvider()
+            #adding wl
+            demStatsVLpr.addAttributes([blockWLs])
+            demStatsVL.updateFields()
 
-        #adding wl (mean - 1stdv)
-        for feature in demStatsVL.getFeatures():
-            feature.setAttribute(feature.fieldNameIndex('wl'), round(round((feature['_mean'] - feature['_stdev']) * 2) / 2, 2))
-            demStatsVL.updateFeature(feature)
-    
+            #adding wl (mean - 1stdv)
+            for feature in demStatsVL.getFeatures():
+                feature.setAttribute(feature.fieldNameIndex('wl'), round(round((feature['_mean'] - feature['_stdev']) * 2) / 2, 2))
+                demStatsVL.updateFeature(feature)
+        
     #splitting each block into its own layer
     splitBlocksInput = demStats["OUTPUT"] 
     print(splitBlocksInput)
