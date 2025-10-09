@@ -475,6 +475,7 @@ def autoOverlay(blocks, dem, outputFolder):
 #WOULD LIKE TO PUT ALL OUTPUTS IN AUOTOVERLAY FOLDER THAT WILL REWRITE OR MAKE NEW EVERY TIME
 #finish readme
 #create cubsequent folders for histogram organization?
+#finish roadCalc, for some reason it never actually got done 
 
 #debugging funcs brainstormg
 #   checking for block column in block input and writing warning if there is no block column 
