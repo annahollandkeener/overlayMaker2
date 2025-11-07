@@ -227,7 +227,7 @@ def autoOverlay(blocks, dem, outputFolder):
     print("\n~ Starting auto-overlay script ~")
 
     #----------creating an autoOverlay folder to contain outputs------------
-    autoOverlayFolder = outputFolder + "/autoOverlay"
+    ''' autoOverlayFolder = outputFolder + "/autoOverlay"
 
     if not os.path.exists(autoOverlayFolder):
         os.makedirs(autoOverlayFolder)
@@ -242,6 +242,7 @@ def autoOverlay(blocks, dem, outputFolder):
                 os.makedirs(new_folder_path)
                 outputFolder = new_folder_path
             counter += 1
+    '''
     #-------------------------------------------------------------------------
 
     TODStatsFolder = makeFolder(outputFolder, "TODStats")
@@ -269,25 +270,28 @@ def autoOverlay(blocks, dem, outputFolder):
     print("\n-> Initial block DEM Stats Created: " + "'" + demStats['OUTPUT'] + "'\n")
 
     #checking if WL column exists already or not, and adding it if so 
-    if test.isWLColumn(blocks) == False:
-        #creating vector layer for demStats file
-        demStatsVL = QgsVectorLayer(demStats['OUTPUT'], "DEMStats")
+    '''if test.isWLColumn(blocks) == False:
+        print("Will add this test later.")
+    '''
 
-        #creating a wl field for the blocks
-        blockWLs = QgsField("wl", QVariant.Double) 
+    #creating vector layer for demStats file
+    demStatsVL = QgsVectorLayer(demStats['OUTPUT'], "DEMStats")
 
-        #opening editor
-        with edit(demStatsVL):
-            #getting data provider
-            demStatsVLpr = demStatsVL.dataProvider()
-            #adding wl
-            demStatsVLpr.addAttributes([blockWLs])
-            demStatsVL.updateFields()
+    #creating a wl field for the blocks
+    blockWLs = QgsField("wl", QVariant.Double) 
 
-            #adding wl (mean - 1stdv)
-            for feature in demStatsVL.getFeatures():
-                feature.setAttribute(feature.fieldNameIndex('wl'), round(round((feature['_mean'] - feature['_stdev']) * 2) / 2, 2))
-                demStatsVL.updateFeature(feature)
+    #opening editor
+    with edit(demStatsVL):
+        #getting data provider
+        demStatsVLpr = demStatsVL.dataProvider()
+        #adding wl
+        demStatsVLpr.addAttributes([blockWLs])
+        demStatsVL.updateFields()
+
+        #adding wl (mean - 1stdv)
+        for feature in demStatsVL.getFeatures():
+            feature.setAttribute(feature.fieldNameIndex('wl'), round(round((feature['_mean'] - feature['_stdev']) * 2) / 2, 2))
+            demStatsVL.updateFeature(feature)
         
     #splitting each block into its own layer
     splitBlocksInput = demStats["OUTPUT"] 
@@ -322,7 +326,7 @@ def autoOverlay(blocks, dem, outputFolder):
         print("\n-> Block grid created: " + "'" + TODStats['OUTPUT'])
 
         #Making this into a vector layer
-        TODStatsVL = QgsVectorLayer(TODStats['OUTPUT'], "TODStatsVL" + str(i), "ogr")
+        TODStatsVL = QgsVectorLayer(TODStats['OUTPUT'], "TODStatsVL_" + currentBlock, "ogr")
         
         #adding a wl column for easy merging
         wl = QgsField("wl", QVariant.Double) 
@@ -458,7 +462,7 @@ def autoOverlay(blocks, dem, outputFolder):
         #creating histogram
         rasterHist(overlay, blocks, histogramsProgFolder)
 
-        if overlayOptionIndex <= (len(overlayOptions) - 1):
+        if overlayOptionIndex < (len(overlayOptions) - 1):
             overlayOptionIndex += 1
 
     print("\n--------------------------AUTO-OVERLAY COMPLETE--------------------------\n")
@@ -476,6 +480,11 @@ def autoOverlay(blocks, dem, outputFolder):
 #finish readme
 #create cubsequent folders for histogram organization?
 #finish roadCalc, for some reason it never actually got done 
+
+
+
+#also produces a full site histogram 
+#histograms in acres ()
 
 #debugging funcs brainstormg
 #   checking for block column in block input and writing warning if there is no block column 

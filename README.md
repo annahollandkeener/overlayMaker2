@@ -1,6 +1,6 @@
 # <b><span style="color: #7faeb3;"> overlayMaker README </span></b>
 ---
-## The 'overlayMaker' is a suite of tools built from available pyqgis functions that allows for an efficient creation and analysis of overlays for pocosin restoration projects
+## The 'overlayMaker' is a suite of tools built from available pyqgis functions that allows for efficient creation and analysis of overlays for pocosin restoration projects
 ---
 
 ###  <span style="color: #7faeb3"> Setting Up the 'overlayMaker' Workspace: </span>

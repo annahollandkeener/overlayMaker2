@@ -17,14 +17,14 @@ import overlayMakerFunctions
 
 #------------USER INPUTS--------------------
 #Shapefile (SHP) for block boundaries 
-blockBoundaries =  "S:/KBE/Prj_2024/Pantheon Carolina Ranch/GIS/withers_blocks_singleparts.shp"
+blockBoundaries =  "C:/wfh/python/L&L Demo/blockBoundaries/updated_blocks_split.shp"
 
 #Shapefile (SHP) for block boundaries you would like domed overlays for
 domedBlocksBoundaries = []
 
 #DEM of ground surface for project area
-groundDEM = "S:/KBE/Prj_2024/Pantheon Carolina Ranch/GIS/elevation/2020_lidar_2264_ft.tif"
-
+groundDEM = "C:/wfh/python/L&L Demo/groundDEM/CarolinaRanch_2020lidar_3ft (2).tif"
+   
 #Rasterized (TIF) version of your block boundaries
 waterTableDEM = ""
 
@@ -34,7 +34,7 @@ projectRoads = ""
 overlay = ""
 
 #Where you would like the results to end up
-outputFolder = "K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
+outputFolder = "C:/wfh/python/L&L Demo/output"
 
 #-------------CALL FUNCTIONS HERE---------------------
 overlayMakerFunctions.autoOverlay(blockBoundaries, groundDEM, outputFolder)

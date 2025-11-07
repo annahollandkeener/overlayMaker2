@@ -2,6 +2,8 @@
 import os
 from qgis.core import QgsVectorLayer
 
+#LET ME KNOW IF YOU RUN INTO ANY ISSUES WHEN RUNNING YOUR CODE AND WE CAN MAKE A NEW TEST CASE
+
 def isPathValid(pathToTest):
     #check if valid path
     if not os.path.exists(pathToTest):
