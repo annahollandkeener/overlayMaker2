@@ -9,7 +9,7 @@ from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 from osgeo import gdal
 import pandas as pd
 import matplotlib.pyplot as plt
-from qgis.core import edit, QgsVectorDataProvider, QgsVariantUtils
+from qgis.core import edit, QgsVectorDataProvider, QgsVariantUtils, QgsUnitTypes
 
 #import tests
 import test
@@ -66,8 +66,19 @@ def rasterSubtractor(dem, waterTable, outputFolder, opt = 0):
 #RASTER HISTOGRAM GENERATOR: Creates a histogram for an overlay/raster for specified blocks
 def rasterHist(overlay, blocks, outputFolder, reclass = None):
     print("\n~ Performing Raster Histogram Generation ~\n")
+
+    #reading raster in and getting pixel area
+    overlayLayer = QgsRasterLayer(overlay, "overlay", "gdal")
+    pixel_size_x = overlayLayer.rasterUnitsPerPixelX()
+    pixel_size_y = overlayLayer.rasterUnitsPerPixelY()
+    pixelArea = pixel_size_x * pixel_size_y
+    crs = overlayLayer.crs()
+    units = crs.mapUnits()
+    print(units)
+
     if reclass == None:
         reclass = ['-1000','0','1','0','1','2','1','2','3','2','3','4','3','1000','5']
+    
     
     ranges = ['<0', '0-1', '1-2', '2-3', ">3"]
 
@@ -91,22 +102,31 @@ def rasterHist(overlay, blocks, outputFolder, reclass = None):
     df = pd.read_csv(zonalHistCSV2)
 
     # Display the first few rows of the DataFrame
-    #print(df.head())
+    print(df.head())
 
     histogramData = []
 
     row = 0
 
     for block in df['block']:
-        counts = []
+        totalPixels = 0
+        classNum = 1
+
+        while (classNum <= 5):
+            className = 'CLASS_' + str(classNum)
+            totalPixels += (int(df.loc[row, className])) 
+            classNum += 1
+
+        acres = []
+
         classNum = 1
         
         while (classNum <= 5):
             className = 'CLASS_' + str(classNum)
-            counts.append(int(df.loc[row, className]))
+            acres.append(int(df.loc[row, className])) 
             classNum += 1
             
-        histogramData.append(counts)
+        histogramData.append(acres)
 
         row += 1
         
@@ -128,12 +148,13 @@ def rasterHist(overlay, blocks, outputFolder, reclass = None):
             ax.set_title(histNames[histNameNum])
             ax.set_xlabel('Range')
             ax.set_ylabel('Frequency')
-            ax.set_ylim(0, 5000000)
+            ax.set_ylim(0, max(data))
             ax.ticklabel_format(axis='y', style='plain', scilimits=None, useOffset=None, useLocale=None, useMathText=None)
             histNameNum += 1
 
     plt.tight_layout()
     histogramWindowName = outputFolder + "/" + baseName + "_hist"
+    print(histogramWindowName)
     plt.savefig(histogramWindowName)
 
 #FLAT WATER TABLE GENERATOR: Creates a flat water table raster for specified blocks
