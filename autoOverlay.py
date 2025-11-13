@@ -1,4 +1,4 @@
-#IMPORTS
+   #IMPORTS
 import os
 from qgis.core import QgsVectorLayer, QgsCoordinateReferenceSystem, QgsField, QgsVectorFileWriter, QgsCoordinateTransformContext
 from qgis.PyQt.QtCore import QVariant
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from qgis.core import edit, QgsVectorDataProvider, QgsVariantUtils, QgsUnitTypes
 
 #FUNCTION IMPORTS
-from overlayMakerFunctions import domedWT, rasterHist, rasterSubtractor, makeFolder
+from overlayMakerFunctions import domedWT, rasterHist, rasterSubtractor
 import testFunctions
 
 
@@ -21,15 +21,15 @@ def autoOverlay(blocks, dem, outputFolder):
      #----------testing inputs----------
     testFunctions.hasRequiredColumn(blocks, 'blocks')
     wlColumnPresent = testFunctions.hasRequiredColumn(blocks, 'wl')
-
-    #-----------------------------------
+    #----------testing inputs----------
 
 def generateFromExisting(blocks, dem, outputFolder):
     print("\n~ Starting auto-overlay script: creating domed overlay based on already designed WL ~")
     
-    
-    #----------creating an autoOverlay folder to contain outputs------------
-    ''' autoOverlayFolder = outputFolder + "/autoOverlay"
+    #-----------FOLDER CREATION---------------------------------------------------
+
+    #-----------OUTPUT FOLDER------------
+    autoOverlayFolder = outputFolder + "/autoOverlay"
 
     if not os.path.exists(autoOverlayFolder):
         os.makedirs(autoOverlayFolder)
@@ -37,24 +37,77 @@ def generateFromExisting(blocks, dem, outputFolder):
     else:
         # Folder already exists, find a unique name by appending a number
         folder_name, _ = os.path.splitext(autoOverlayFolder) # Split to handle potential extensions, though not typical for folders
+        
         counter = 1
-        while True:
-            new_folder_path = f"{folder_name}({counter})"
+
+        folderExists = True
+
+        while folderExists == True:
+
+            new_folder_path = f"{folder_name} ({counter})"
+
             if not os.path.exists(new_folder_path):
                 os.makedirs(new_folder_path)
+
                 outputFolder = new_folder_path
-            counter += 1
-    '''
-    #-------------------------------------------------------------------------
-  
-    TODStatsFolder = makeFolder(outputFolder, "TODStats")
-    TODVectors = makeFolder(outputFolder, "TODVectos")
-    blocksInnerOuter = makeFolder(outputFolder, "blocks_inner+outer")
-    overlaysFolder = makeFolder(outputFolder, "Completed Overlays")
-    domedWTOutputPath = makeFolder(outputFolder, "domedWaterTables")
-    histogramsFolder = makeFolder(outputFolder, "Histograms")
-    histogramsProgFolder = makeFolder(histogramsFolder, "Processing")
-    demStatsFolder = makeFolder(outputFolder, "initialBlockDEMStats", "stats")
+
+                folderExists = False
+
+            else:
+                counter += 1
+
+    #------------PROCESSING--------------------
+    #Making Processing folder
+    ProcessingFolder = outputFolder + "/Processing"
+    os.mkdir(ProcessingFolder)
+
+    #--------------PROCESSING -> DEM STATS-----------------
+    demStatsFolder = ProcessingFolder + "/Initial Block DEM Stats"
+    os.mkdir(demStatsFolder)
+
+    #--------------PROCESSING -> TOD-----------------
+    #Making TOD folder
+    TODFolder = ProcessingFolder + "/TOD"
+    os.mkdir(TODFolder)
+
+    #Making TOD Stats folder
+    TODStatsFolder = TODFolder + "/TOD Stats"
+    os.mkdir(TODStatsFolder)
+
+    #Making TOD Vectors folder
+    TODVectorsFolder = TODFolder + "/TOD Vectors"
+    os.mkdir(TODVectorsFolder)
+
+    #-------------PROCESSING -> DOMES-------------------
+
+    #Making dome folder
+    domesFolder = ProcessingFolder + "/Domes"
+    os.mkdir(domesFolder)
+
+    #Making merged dome vector folder
+    blocksInnerOuter = domesFolder + "/Merged Dome Vectors"
+    os.mkdir(blocksInnerOuter)
+
+    #Making domed water table raster folder
+    domedWTOutputPath = domesFolder + "/Domed Water Tables"
+    os.mkdir(domedWTOutputPath)
+
+    #-------------PROCESSING -> HISTOGRAMS-------------------
+
+    #Making histogram progress folder
+    histogramsProgFolder = ProcessingFolder + "/Histograms"
+    os.mkdir(histogramsProgFolder)
+
+    #-------------OVERLAYS-------------------
+    #Making Completed Overlays folder
+    overlaysFolder = outputFolder + "/Completed Overlays"
+    os.mkdir(overlaysFolder)
+
+    #-------------HISTOGRAMS-------------------
+    histogramsFolder = outputFolder + "/Completed Histograms"
+    os.mkdir(histogramsFolder)
+
+    #-------------ESTABLISHING IMPORTANT VARIABLES-------------------
 
     #adding other wl columns for overlay options
     overlayOptions = [0, 1, 2, -1, -2]
@@ -66,7 +119,7 @@ def generateFromExisting(blocks, dem, outputFolder):
     domeBlocks = []
 
     #calculating DEM stats: count, sum, mean, stdv
-    demStats = processing.run("native:zonalstatisticsfb", {'INPUT':blocks,'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':demStatsFolder})
+    demStats = processing.run("native:zonalstatisticsfb", {'INPUT':blocks,'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':demStatsFolder + "/Inital DEM Stats"})
     
     print("\n---------------------------------------------INITIAL BLOCK ANALYSIS------------------------------------------------------------------------")
     print("\n-> Initial block DEM Stats Created: " + "'" + demStats['OUTPUT'] + "'\n")
@@ -77,7 +130,7 @@ def generateFromExisting(blocks, dem, outputFolder):
     #splitting each block into its own layer
     splitBlocksInput = demStats["OUTPUT"] 
     print(splitBlocksInput)
-    splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'block','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':outputFolder + "/allBlocksSplit"})
+    splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'block','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':ProcessingFolder + "/All Blocks Split"})
     
     print("--> Blocks split: " + "'" + splitBlocks['OUTPUT'])
     print("\n---------------------------------------------------------------------------------------------------------------------")
@@ -112,8 +165,11 @@ def generateFromExisting(blocks, dem, outputFolder):
         #buffering the grid
         buffered = processing.run("native:buffer", {'INPUT':clippedGrid['OUTPUT'],'DISTANCE':(blockArea/10000),'SEGMENTS':5,'END_CAP_STYLE':0,'JOIN_STYLE':0,'MITER_LIMIT':2,'DISSOLVE':False,'SEPARATE_DISJOINT':False,'OUTPUT':'TEMPORARY_OUTPUT'})
         
+        #clipping buffer to block 
+        clippedBuffer = processing.run("native:clip", {'INPUT':buffered['OUTPUT'],'OVERLAY':block,'OUTPUT':'TEMPORARY_OUTPUT'})
+
         #zonal stats on the grid vectors
-        TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':buffered['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':TODStatsFolder + "/" + currentBlock + "_TODStats"})
+        TODStats = processing.run("native:zonalstatisticsfb", {'INPUT':clippedBuffer['OUTPUT'],'INPUT_RASTER':dem,'RASTER_BAND':1,'COLUMN_PREFIX':'_','STATISTICS':[0,1,2,4],'OUTPUT':TODStatsFolder + "/" + currentBlock + "_TODStats"})
         
         print("\n-> Block grid created: " + "'" + TODStats['OUTPUT'])
 
@@ -161,7 +217,7 @@ def generateFromExisting(blocks, dem, outputFolder):
             save_options.layerOptions = ["OVERWRITE=YES"]
             transform_context = QgsProject.instance().transformContext()
 
-            topOfDome = QgsVectorFileWriter.writeAsVectorFormatV3(layer=TODStatsVL, fileName=TODVectors + "/" + currentBlock + "_TOD", transformContext=transform_context, options=save_options)
+            topOfDome = QgsVectorFileWriter.writeAsVectorFormatV3(layer=TODStatsVL, fileName=TODVectorsFolder + "/" + currentBlock + "_TOD", transformContext=transform_context, options=save_options)
         
             print("--> Dome selected for " + currentBlock)
 
@@ -246,7 +302,7 @@ def generateFromExisting(blocks, dem, outputFolder):
 
     for index in wlIndexes:
 
-        print(index)
+        print(index)     
         print(overlayOptionIndex)
         #creating domes for each overlay option 
     
@@ -261,11 +317,11 @@ def generateFromExisting(blocks, dem, outputFolder):
 
         print("----> Dome resampled to match DEM")
 
-        #creating overlay
+        #creating overlay  
         overlay = rasterSubtractor(dem, resampledDomeOutput, overlaysFolder, overlayOptions[overlayOptionIndex])
 
         #creating histogram
-        rasterHist(overlay, blocks, histogramsProgFolder)
+        rasterHist(overlay, blocks, histogramsProgFolder, histogramsFolder)
 
         overlayOptionIndex += 1
 
@@ -346,7 +402,7 @@ def generateNew(blocks, dem, outputFolder):
         
     #splitting each block into its own layer
     splitBlocksInput = demStats["OUTPUT"] 
-    print(splitBlocksInput)
+   
     splitBlocks = processing.run("native:splitvectorlayer", {'INPUT':splitBlocksInput,'FIELD':'block','PREFIX_FIELD':True,'FILE_TYPE':1,'OUTPUT':outputFolder + "/allBlocksSplit"})
     
     print("--> Blocks split: " + "'" + splitBlocks['OUTPUT'])

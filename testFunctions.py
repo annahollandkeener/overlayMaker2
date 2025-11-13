@@ -44,8 +44,8 @@ def hasRequiredColumnTest(blocksToTest, colName):
     for feature in blocksVL.getFeatures():
         field_value = feature(colName)
 
-        if QgsVariantUtils.isNull(field_value):
-            raise Exception((f"Feature ID: {feature.id()}, Field '{colName}' IS null."))
+        if QgsVariantUtils.isNull(field_value):  
+            raise Exception((f"ERROR: There are null values in {colName}"))
 
 
 
