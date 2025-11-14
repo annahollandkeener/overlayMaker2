@@ -10,6 +10,7 @@ from osgeo import gdal
 import pandas as pd
 import matplotlib.pyplot as plt
 from qgis.core import edit, QgsVectorDataProvider, QgsVariantUtils
+import math
 
 #import tests
 import testFunctions
@@ -44,16 +45,14 @@ def rasterSubtractor(dem, waterTable, outputFolder, opt = 0):
 
     calc.processCalculation()
     
-    print("OVERLAY GENERATED!: '" + outputPath + "'\n")
-
-    print(calc)
+    print("OVERLAY GENERATED: '" + outputPath)
 
     return outputPath
 
 #RASTER HISTOGRAM GENERATOR: Creates a histogram for an overlay/raster for specified blocks
-def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None):
-    print("\n~ Performing Raster Histogram Generation ~\n")
-    print(reclass)
+def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, histPlotName = str):
+    print("\n~ Performing Raster Histogram Generation ~")
+    
     if reclass == None:
         reclass = ['-1000','0','1','0','1','2','1','2','3','2','3','4','3','1000','5']
     
@@ -64,9 +63,19 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None):
     #reclassifying overlay based on block zones
     reclassRast = processing.run("native:reclassifybytable", {'INPUT_RASTER':overlay,'RASTER_BAND':1,'TABLE':reclass,'NO_DATA':-9999,'RANGE_BOUNDARIES':0,'NODATA_FOR_MISSING':False,'DATA_TYPE':5,'CREATE_OPTIONS':None,'OUTPUT':progressFolder + "/" + baseName + "reclass.gpkg"})
 
+    #turning reclass raster into a raster layer object
+    reclassRastRL = QgsRasterLayer(reclassRast['OUTPUT'], "reclassified raster", "gdal")
+
     #calculating zonal histogram from reclassified raster 
     zonalHistOP = progressFolder + "/" + baseName + "zonalHist.gpkg"
     zonalHist = processing.run("native:zonalhistogram", {'INPUT_RASTER':reclassRast['OUTPUT'],'RASTER_BAND':1,'INPUT_VECTOR':blocks,'COLUMN_PREFIX':'CLASS_','OUTPUT':zonalHistOP})
+
+    #getting pixel size in order to get area
+    pixel_size_x = reclassRastRL.rasterUnitsPerPixelX()
+    pixel_size_y = reclassRastRL.rasterUnitsPerPixelY()
+    pixelAreaFT = pixel_size_x * pixel_size_y
+    pixelAreaAcres = pixelAreaFT / 43560
+    
 
     #zonalHist transform to csv
     zonalHistCSV = progressFolder + "/" + baseName + "zonalHist_CSV"
@@ -75,26 +84,39 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None):
 
     #locating csv because apparently the creation of the csv from gpkg creates a folder to hold the csv
     zonalHistCSV2 = zonalHistCSV + "/" + baseName + "zonalHist.csv"
+
     #reading the csv
     df = pd.read_csv(zonalHistCSV2)
 
     histogramData = []
+    fullAreas = []
+    maxes = []
 
     row = 0
 
     for block in df['block']:
         counts = []
         classNum = 1
+        blockAreaAcres = 0
         
         while (classNum <= 5):
             className = 'CLASS_' + str(classNum)
-            counts.append(int(df.loc[row, className]))
+            #turnign pixel count into acres and adding it to a list to be used in the histogram
+            counts.append(round(int(df.loc[row, className]) * pixelAreaAcres, 2))
+           
+            blockAreaAcres += (int(df.loc[row, className]) * pixelAreaAcres)
+
             classNum += 1
             
         histogramData.append(counts)
+        fullAreas.append(round(blockAreaAcres, 2))
+        maxes.append(max(counts))
 
         row += 1
-        
+
+    #I WANT TO MAKE IT SO THAT ALL OF THE OVERLAY OPTION HISTOGRAMS ARE ON ONE WINDOW
+    subFigRows = math.ceil(len(histogramData))
+
     #setting up window to hold multiple histograms
     n_cols = 2
     n_rows = (len(histogramData) + n_cols - 1) // n_cols
@@ -104,22 +126,29 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None):
     histNameNum = 0 
     histNames = df['block'].to_list()
 
-    colors = ['blue', 'lightgreen', 'green', 'yellow', 'red']
+    #bar colors
+    cmap = plt.cm.get_cmap('rainbow')
+    colors = [cmap(i / len(ranges)) for i in range(len(ranges))]
 
     for i, data in enumerate(histogramData):
         if i < len(axes): # Ensure we don't try to plot on non-existent axes
             ax = axes[i]
             ax.bar(ranges, data, color = colors, edgecolor='black')
             ax.set_title(histNames[histNameNum])
-            ax.set_xlabel('Range')
-            ax.set_ylabel('Frequency')
-            ax.set_ylim(0, 5000000)
+            ax.set_xlabel('Depth to Water Table')
+            ax.set_ylabel('Acres')
+            ax.set_ylim(0, maxes[i] + (fullAreas[i] / 100))
             ax.ticklabel_format(axis='y', style='plain', scilimits=None, useOffset=None, useLocale=None, useMathText=None)
             histNameNum += 1
 
     plt.tight_layout()
     histogramWindowName = outputFolder + "/" + baseName + "hist"
+    plt.suptitle(histPlotName)
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
     plt.savefig(histogramWindowName)
+    plt.show()
+
+    print(f"HISTOGRAM GENERATED: {histogramWindowName}")
 
 #FLAT WATER TABLE GENERATOR: Creates a flat water table raster for specified blocks
 def flatWT(blocks, outputFolder):
@@ -144,7 +173,7 @@ def flatWT(blocks, outputFolder):
 
 #DOMED WATER TABLE GENERATOR: Creates a domed water table raster for specified blocks
 def domedWT(domedBlocks = [], outputFolder = str, columnIndicator = 2, opt = int):
-    print("\n~ Performing creation of domed water table: Option " + str(opt))
+    print("\n~ Performing creation of domed water table: Option " + str(opt) + " ~")
     
     #saving sources of clipped domes in order to merge later
     clippedDomes = []

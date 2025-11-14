@@ -13,17 +13,19 @@ qgs = QgsApplication([], False)
 qgs.initQgis()
 
 #Importing all overlay maker functions
-import overlayMakerFunctions, autoOverlay
+import overlayMakerFunctions, overlayMaker2.overlayMaker as overlayMaker
 
 #------------USER INPUTS--------------------
 #Shapefile (SHP) for block boundaries 
-blockBoundaries =  "S:/KBE/Prj_2025/Pocosin Lakes IRA/GIS/RA4/RA4_blocks_singleparts.shp"
+blockBoundaries =  "C:/wfh/RA4/RA4 111025/RA4_blocks_singleparts.shp"
+#"S:/KBE/Prj_2025/Pocosin Lakes IRA/GIS/RA4/RA4_blocks_singleparts.shp"
 
 #Shapefile (SHP) for block boundaries you would like domed overlays for
 domedBlocksBoundaries = []
 
 #DEM of ground surface for project area
-groundDEM = "S:/KBE/Prj_2025/Pocosin Lakes IRA/GIS/2020_lidar/RA4_5/RA_4_5_DEM_3ft_ft.tif"
+groundDEM = "C:/wfh/RA4/RA_4_5_DEM_3ft_ft.tif"
+#"S:/KBE/Prj_2025/Pocosin Lakes IRA/GIS/2020_lidar/RA4_5/RA_4_5_DEM_3ft_ft.tif"
    
 #Rasterized (TIF) version of your block boundaries
 waterTableDEM = ""
@@ -34,13 +36,11 @@ projectRoads = ""
 overlay = ""
 
 #Where you would like the results to end up
-outputFolder = "K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
+outputFolder = "C:/wfh/python/overlayMaker outputs"
+#"K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
 
 #-------------CALL FUNCTIONS HERE---------------------
-autoOverlay.generateFromExisting(blockBoundaries, groundDEM, outputFolder)
-
-
-
+overlayMaker.overlayMaker(blockBoundaries, groundDEM, outputFolder)
 
 #-----------------------------------------------------
 
