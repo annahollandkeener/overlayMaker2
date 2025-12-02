@@ -42,7 +42,7 @@ def rasterSubtractor(dem, waterTable, outputFolder, opt = 0):
     transform_context = QgsProject.instance().transformContext()
     
     calc=QgsRasterCalculator(('"top_raster@1" - "bottom_raster@1"'), outputPath, 'GTiff', bottomDEM.extent(), bottomDEM.width(), bottomDEM.height(), [top, bottom], transform_context)
-
+    
     calc.processCalculation()
     
     print("OVERLAY GENERATED: '" + outputPath)
@@ -58,7 +58,8 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, hi
     
     ranges = ['<0', '0-1', '1-2', '2-3', ">3"]
 
-    baseName = os.path.basename(overlay).split(".")[0] + "_"
+    baseName = os.path.basename(overlay).rsplit(".", 1)[0] + "_"
+    print(baseName)
 
     #reclassifying overlay based on block zones
     reclassRast = processing.run("native:reclassifybytable", {'INPUT_RASTER':overlay,'RASTER_BAND':1,'TABLE':reclass,'NO_DATA':-9999,'RANGE_BOUNDARIES':0,'NODATA_FOR_MISSING':False,'DATA_TYPE':5,'CREATE_OPTIONS':None,'OUTPUT':progressFolder + "/" + baseName + "reclass.gpkg"})
@@ -76,14 +77,17 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, hi
     pixelAreaFT = pixel_size_x * pixel_size_y
     pixelAreaAcres = pixelAreaFT / 43560
     
-
     #zonalHist transform to csv
     zonalHistCSV = progressFolder + "/" + baseName + "zonalHist_CSV"
+    print(zonalHistCSV)
     options = gdal.VectorTranslateOptions(format='CSV', layerCreationOptions=['GEOMETRY=AS_WKT'])
+    print(zonalHistOP)
     gdal.VectorTranslate(zonalHistCSV, zonalHistOP, options=options)
 
     #locating csv because apparently the creation of the csv from gpkg creates a folder to hold the csv
     zonalHistCSV2 = zonalHistCSV + "/" + baseName + "zonalHist.csv"
+    print(zonalHistCSV2)
+    print(baseName)
 
     #reading the csv
     df = pd.read_csv(zonalHistCSV2)
@@ -127,7 +131,7 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, hi
     histNames = df['block'].to_list()
 
     #bar colors
-    cmap = plt.cm.get_cmap('rainbow')
+    cmap = plt.colormaps['rainbow']
     colors = [cmap(i / len(ranges)) for i in range(len(ranges))]
 
     for i, data in enumerate(histogramData):
@@ -146,7 +150,6 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, hi
     plt.suptitle(histPlotName)
     plt.tight_layout(rect=[0, 0, 1, 0.98])
     plt.savefig(histogramWindowName)
-    plt.show()
 
     print(f"HISTOGRAM GENERATED: {histogramWindowName}")
 

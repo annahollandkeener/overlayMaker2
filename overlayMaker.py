@@ -10,7 +10,7 @@ from osgeo import gdal
 import pandas as pd
 import matplotlib.pyplot as plt
 from qgis.core import edit, QgsVectorDataProvider, QgsVariantUtils, QgsUnitTypes
-from PyQt5.QtCore import QMetaType # Or PyQt6.QtCore for QGIS 3.28+
+from PyQt5.QtCore import QMetaType 
 
 
 
@@ -19,17 +19,17 @@ from overlayMakerFunctions import domedWT, rasterHist, rasterSubtractor
 import testFunctions
 
 
-def overlayMaker(blocks, dem, outputFolder):
+def overlayMaker(blocks, dem, outputFolder, overlayOptions = []):
     print("\n------------------------------------------------------------------------------------------------------------------------------------------")
     print("\n---------------------------------------------STARTING OVERLAYMAKER------------------------------------------------------------------------")
     print("\n------------------------------------------------------------------------------------------------------------------------------------------")
 
-    #----------testing inputs----------
+    #----------testing inputs begin----------
 
     testFunctions.hasRequiredColumnTest(blocks, 'block')
     wlColumnPresent = testFunctions.hasOptionalColumnTest(blocks, 'wl')
 
-    #----------testing inputs----------
+    #----------testing inputs end----------
     
     #-----------FOLDER CREATION---------------------------------------------------
 
@@ -114,8 +114,10 @@ def overlayMaker(blocks, dem, outputFolder):
 
     #-------------ESTABLISHING IMPORTANT VARIABLES-------------------
 
-    #adding other wl columns for overlay options
-    overlayOptions = [0, 1, 2, -1, -2]
+    #adding other wl columns for overlay options, if not already defined
+    if len(overlayOptions) == 0:
+        print("Overlay options not specified. Using default options: [0, 1, 2, -1, -2].")
+        overlayOptions = [0, 1, 2, -1, -2]
 
     #variable for getting the index of the wl columns so we can have the proper TIN interp settings later
     wlIndexes = []
@@ -341,8 +343,10 @@ def overlayMaker(blocks, dem, outputFolder):
 
         print("-> Dome resampled to match DEM")
 
+
         #creating overlay  
         overlay = rasterSubtractor(dem, resampledDomeOutput, overlaysFolder, overlayOptions[overlayOptionIndex])
+
 
         #creating histogram
         rasterHist(overlay, blocks, histogramsProgFolder, histogramsFolder, None, f"Overlay Option: {overlayOptions[overlayOptionIndex]} ft")
@@ -350,7 +354,6 @@ def overlayMaker(blocks, dem, outputFolder):
 
         overlayOptionIndex += 1
     
-        exit()
 
 
     print("\n--------------------------AUTO-OVERLAY COMPLETE--------------------------\n")

@@ -17,7 +17,7 @@ import overlayMakerFunctions, overlayMaker2.overlayMaker as overlayMaker
 
 #------------USER INPUTS--------------------
 #Shapefile (SHP) for block boundaries 
-blockBoundaries =  "C:/wfh/RA4/RA4 111025/RA4_blocks_singleparts.shp"
+blockBoundaries =  "C:/wfh/RA4/Proposed RA4 Blocks .shp"
 #"S:/KBE/Prj_2025/Pocosin Lakes IRA/GIS/RA4/RA4_blocks_singleparts.shp"
 
 #Shapefile (SHP) for block boundaries you would like domed overlays for
@@ -40,7 +40,7 @@ outputFolder = "C:/wfh/python/overlayMaker outputs"
 #"K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
 
 #-------------CALL FUNCTIONS HERE---------------------
-overlayMaker.overlayMaker(blockBoundaries, groundDEM, outputFolder)
+overlayMaker.overlayMaker(blockBoundaries, groundDEM, outputFolder, [-1.5, -1, -.5, 0, .5, 1, 1.5])
 
 #-----------------------------------------------------
 
