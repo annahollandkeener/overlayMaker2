@@ -13,12 +13,11 @@ qgs = QgsApplication([], False)
 qgs.initQgis()
 
 #Importing all overlay maker functions
-import overlayMakerFunctions, overlayMaker2.overlayMaker as overlayMaker
+import helperFunctions as helperFunctions, autoOverlay
 
 #------------USER INPUTS--------------------
 #Shapefile (SHP) for block boundaries 
-blockBoundaries =  "C:/wfh/RA4/Proposed RA4 Blocks .shp"
-#"S:/KBE/Prj_2025/Pocosin Lakes IRA/GIS/RA4/RA4_blocks_singleparts.shp"
+blockBoundaries = "C:\wfh\RA4\Roads.shp"
 
 #Shapefile (SHP) for block boundaries you would like domed overlays for
 domedBlocksBoundaries = []
@@ -33,15 +32,17 @@ waterTableDEM = ""
 #Vector file (SHP) of the roads within your project area
 projectRoads = ""
      
-overlay = ""
+overlay = "C:/wfh/RA4/Option 5 Overlay.tif"
 
 #Where you would like the results to end up
 outputFolder = "C:/wfh/python/overlayMaker outputs"
 #"K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
 
 #-------------CALL FUNCTIONS HERE---------------------
-overlayMaker.overlayMaker(blockBoundaries, groundDEM, outputFolder, [-1.5, -1, -.5, 0, .5, 1, 1.5])
+autoOverlay.overlayMaker(blockBoundaries, groundDEM, outputFolder, [0])
+#rasterAnimation.rasterAnimator(groundDEM, "C:/wfh/North River/wellRasters")
 
+#helperFunctions.rasterHist(overlay, blockBoundaries, "C:/wfh/RA4/Histograms/progress", "C:/wfh/RA4/Histograms", None, "DTW Histogram: Option 5")
 #-----------------------------------------------------
 
 # Finally, exitQgis() is called to remove the

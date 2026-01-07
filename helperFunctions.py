@@ -22,8 +22,10 @@ Processing.initialize()
 def rasterSubtractor(dem, waterTable, outputFolder, opt = 0):
     print("\n~ Performing Raster Subtraction ~")
     #subtracting flat raster of blocks from DEM using raster calculator
-    
-    outputPath = outputFolder + "/overlay_option_" + str(opt) + ".tif"
+    if outputFolder == 'TEMPORARY_OUTPUT':
+        outputPath = 'TEMPORARY_OUTPUT'
+    else:
+        outputPath = outputFolder + "/overlay_option_" + str(opt) + ".tif"
     
     topDEM = QgsRasterLayer(dem, "topDEM")
 
@@ -47,19 +49,23 @@ def rasterSubtractor(dem, waterTable, outputFolder, opt = 0):
     
     print("OVERLAY GENERATED: '" + outputPath)
 
-    return outputPath
+    if outputFolder == 'TEMPORARY_OUTPUT':
+        return calc
+    else:
+        return outputPath
 
 #RASTER HISTOGRAM GENERATOR: Creates a histogram for an overlay/raster for specified blocks
 def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, histPlotName = str):
     print("\n~ Performing Raster Histogram Generation ~")
     
-    if reclass == None:
-        reclass = ['-1000','0','1','0','1','2','1','2','3','2','3','4','3','1000','5']
+    #if reclass == None:
+        #reclass = ['-1000','0','1','0','1','2','1','2','3','2','3','4','3','1000','5']
     
-    ranges = ['<0', '0-1', '1-2', '2-3', ">3"]
-
+    reclass = ['-1000','-1','1','-1','-.5','2','-.5','0','3','0','1','4','1','2','5','2','3','6','3','4','7','4','1000','8']
+    
+    ranges = ['< -1', '-1 to -.5', '-.5 to 0', '0 to 1', '1 to 2', '2 to 3', '3 to 4', '> 4']
+        
     baseName = os.path.basename(overlay).rsplit(".", 1)[0] + "_"
-    print(baseName)
 
     #reclassifying overlay based on block zones
     reclassRast = processing.run("native:reclassifybytable", {'INPUT_RASTER':overlay,'RASTER_BAND':1,'TABLE':reclass,'NO_DATA':-9999,'RANGE_BOUNDARIES':0,'NODATA_FOR_MISSING':False,'DATA_TYPE':5,'CREATE_OPTIONS':None,'OUTPUT':progressFolder + "/" + baseName + "reclass.gpkg"})
@@ -76,18 +82,16 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, hi
     pixel_size_y = reclassRastRL.rasterUnitsPerPixelY()
     pixelAreaFT = pixel_size_x * pixel_size_y
     pixelAreaAcres = pixelAreaFT / 43560
-    
+
     #zonalHist transform to csv
     zonalHistCSV = progressFolder + "/" + baseName + "zonalHist_CSV"
-    print(zonalHistCSV)
     options = gdal.VectorTranslateOptions(format='CSV', layerCreationOptions=['GEOMETRY=AS_WKT'])
-    print(zonalHistOP)
     gdal.VectorTranslate(zonalHistCSV, zonalHistOP, options=options)
 
-    #locating csv because apparently the creation of the csv from gpkg creates a folder to hold the csv
+    #renaming csv file that is created during the translation, because there is some kind of weird splitting happening in regard to the base name
     zonalHistCSV2 = zonalHistCSV + "/" + baseName + "zonalHist.csv"
-    print(zonalHistCSV2)
-    print(baseName)
+    csvInFolder = os.listdir(zonalHistCSV)
+    os.rename(zonalHistCSV + "/" + csvInFolder[0], zonalHistCSV2)
 
     #reading the csv
     df = pd.read_csv(zonalHistCSV2)
@@ -103,7 +107,7 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, hi
         classNum = 1
         blockAreaAcres = 0
         
-        while (classNum <= 5):
+        while (classNum <= 8):
             className = 'CLASS_' + str(classNum)
             #turnign pixel count into acres and adding it to a list to be used in the histogram
             counts.append(round(int(df.loc[row, className]) * pixelAreaAcres, 2))
@@ -124,29 +128,33 @@ def rasterHist(overlay, blocks, progressFolder, outputFolder, reclass = None, hi
     #setting up window to hold multiple histograms
     n_cols = 2
     n_rows = (len(histogramData) + n_cols - 1) // n_cols
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(8, 2.5   * n_rows))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 2.5   * n_rows))
     axes = axes.flatten()
 
     histNameNum = 0 
     histNames = df['block'].to_list()
 
     #bar colors
-    cmap = plt.colormaps['rainbow']
-    colors = [cmap(i / len(ranges)) for i in range(len(ranges))]
-
+    #cmap = plt.colormaps['rainbow']
+    #colors = [cmap(i / len(ranges)) for i in range(len(ranges))]
+    colors = ['#a988ff', '#0600ff', '#00d9ff', '#00ff20', '#04ae00', '#fff900', '#ff834e', '#ce0000']
+    
+    print(len(ranges))
+    print(len(colors))
+    
     for i, data in enumerate(histogramData):
         if i < len(axes): # Ensure we don't try to plot on non-existent axes
             ax = axes[i]
             ax.bar(ranges, data, color = colors, edgecolor='black')
             ax.set_title(histNames[histNameNum])
-            ax.set_xlabel('Depth to Water Table')
+            ax.set_xlabel('Depth to Water Table (ft)')
             ax.set_ylabel('Acres')
             ax.set_ylim(0, maxes[i] + (fullAreas[i] / 100))
             ax.ticklabel_format(axis='y', style='plain', scilimits=None, useOffset=None, useLocale=None, useMathText=None)
             histNameNum += 1
 
     plt.tight_layout()
-    histogramWindowName = outputFolder + "/" + baseName + "hist"
+    histogramWindowName = outputFolder + "/" + baseName + "hist.png"
     plt.suptitle(histPlotName)
     plt.tight_layout(rect=[0, 0, 1, 0.98])
     plt.savefig(histogramWindowName)
@@ -200,8 +208,12 @@ def domedWT(domedBlocks = [], outputFolder = str, columnIndicator = 2, opt = int
         interpolationData = dome + '|layername=' + baseName +'::~::0::~::' + str(columnIndicator) + '::~::2'
 
         #calculating rough dome and adding to map viewer
-        roughOutput = outputFolder + "/" + baseName + "_domeRough_" + str(opt) + ".tif"
-        clippedOutput = outputFolder + "/" + baseName + "_domeClipped_" + str(opt) + ".tif"
+        if outputFolder == 'TEMPORARY_OUTPUT':
+            roughOutput = 'TEMPORARY_OUTPUT'
+            clippedOutput = 'TEMPORARY_OUTPUT'
+        else:
+            roughOutput = outputFolder + "/" + baseName + "_domeRough_" + str(opt) + ".tif"
+            clippedOutput = outputFolder + "/" + baseName + "_domeClipped_" + str(opt) + ".tif"
         
         domeRough = processing.run("qgis:tininterpolation", {'INTERPOLATION_DATA':interpolationData,'METHOD':0,'EXTENT':extent,'PIXEL_SIZE':15,'OUTPUT': roughOutput})
         #print("Rough dome created: " + domeRough['OUTPUT'])
@@ -212,12 +224,15 @@ def domedWT(domedBlocks = [], outputFolder = str, columnIndicator = 2, opt = int
         #adding final clipped dome to a list
         clippedDomes.append(domeClipped['OUTPUT'])
 
-    #merging all domes    
-    merge = processing.run("gdal:merge", {'INPUT':clippedDomes,'PCT':False,'SEPARATE':False,'NODATA_INPUT':None,'NODATA_OUTPUT':0,'OPTIONS':None,'EXTRA':'','DATA_TYPE':5,'OUTPUT':outputFolder + '/all_domedWT_merged_' + str(opt) + "ft.tif"})
-    
-    print("COMPLETED DOME: " + merge['OUTPUT'] + "\n")
-
-    return merge
+    #merging all domes 
+    if outputFolder == 'TEMPORARY_OUTPUT':
+        merge = processing.run("gdal:merge", {'INPUT':clippedDomes,'PCT':False,'SEPARATE':False,'NODATA_INPUT':None,'NODATA_OUTPUT':0,'OPTIONS':None,'EXTRA':'','DATA_TYPE':5,'OUTPUT': 'TEMPORARY_OUTPUT'})
+        print("COMPLETED DOME: " + merge['OUTPUT'] + "\n")
+        return merge
+    else:
+        merge = processing.run("gdal:merge", {'INPUT':clippedDomes,'PCT':False,'SEPARATE':False,'NODATA_INPUT':None,'NODATA_OUTPUT':0,'OPTIONS':None,'EXTRA':'','DATA_TYPE':5,'OUTPUT':outputFolder + '/all_domedWT_merged_' + str(opt) + "ft.tif"})
+        print("COMPLETED DOME: " + merge['OUTPUT'] + "\n")
+        return merge
 
 #ROAD CALC: Creates a vector layer showing roads in the project area in need of potential raising
 #******UNDER CONSTRUCTION********
