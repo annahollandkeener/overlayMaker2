@@ -1,4 +1,5 @@
 import tkinter as tk 
+from PIL import ImageTk, Image
 
 class OMView():
 
@@ -7,8 +8,8 @@ class OMView():
         self.controller = controller
         self.root = root
 
-        self.modeButtonFrame = None
         self.modeButtons = {}
+        self.framesToPreserve = []
 
         self.SOInputs = ['Blocks', 'DEM', 'Output Folder']
         self.AOInputs = ['Blocks', 'DEM', 'Output Folder']
@@ -17,23 +18,58 @@ class OMView():
         self.startPage()
 
     def startPage(self):
-        #Making Buttons-----------------------
+        #Making Start Page-----------------------
+
+        titleFrame = tk.Frame(self.root, bg = '#39979e')
+        titleFrame.pack(side=tk.TOP, anchor='center',expand=True, fill='x', pady=5)
+        self.framesToPreserve.append(titleFrame)
+
+        imageFrame = tk.Frame(titleFrame, bg='#39979e')
+        imageFrame.pack(anchor='center')
+        self.framesToPreserve.append(imageFrame)
+
+        KBELogoPath = "C:/wfh/python/overlayMaker2/overlayMaker2/assets/KBE_Logo_crop.jpg"
+        original_image = Image.open(KBELogoPath)
+        resized_image = original_image.resize((110, 50), Image.Resampling.LANCZOS)
+        photo = ImageTk.PhotoImage(resized_image)
+        image_label = tk.Label(imageFrame, image=photo)
+        image_label.pack(side=tk.LEFT,padx=5, pady=15)
+        image_label.image = photo
+        
+        title = tk.Label(imageFrame, text='Overlay Maker', font=("Helvetica", 15, "bold"), bg = '#39979e')
+        title.pack(side=tk.LEFT, padx=5, pady=15)
+
+
+        pocosinPath = "C:/wfh/python/overlayMaker2/overlayMaker2/assets/pocosin.jpg"
+        original_image_pocosin = Image.open(pocosinPath)
+        resized_image_pocosin = original_image_pocosin.resize((599, 181), Image.Resampling.LANCZOS)
+        pocosinPhoto = ImageTk.PhotoImage(resized_image_pocosin)
+        image_label_pocosin = tk.Label(self.root, image=pocosinPhoto)
+        image_label_pocosin.pack(side=tk.TOP, fill='x')
+        image_label_pocosin.image = pocosinPhoto
+
+        instruction = tk.Label(self.root, text='Select a mode:', font=("Helvetica", 12, "bold"), fg = '#707070')
+        instruction.pack(anchor='center', padx=5, pady=10)
 
         modeButtonFrame = tk.Frame(self.root)
-        modeButtonFrame.pack(anchor='n',expand=True, pady=10)
-        self.modeButtonFrame = modeButtonFrame
+        modeButtonFrame.pack(anchor='n',expand=True, pady=15, padx=10)
+        self.framesToPreserve.append(modeButtonFrame)
 
-        SOButton = tk.Button(modeButtonFrame, text = "Simple Overlay", command=lambda: self.controller.onSelectModeSO())
+        SOButton = tk.Button(modeButtonFrame, text = "Simple Overlay", font=("bold"), bg= '#ffffff', command=lambda: self.controller.onSelectModeSO())
         SOButton.pack(padx=10, side=tk.LEFT) 
         self.modeButtons['Simple Overlay'] = SOButton
 
-        AOButton = tk.Button(modeButtonFrame, text = "autoOverlay", command=lambda: self.controller.onSelectModeAO())
+        AOButton = tk.Button(modeButtonFrame, text = "autoOverlay", font=("bold"), bg= '#ffffff', command=lambda: self.controller.onSelectModeAO())
         AOButton.pack(padx=10, side=tk.LEFT) 
         self.modeButtons['autoOverlay'] = AOButton
 
-        HButton = tk.Button(modeButtonFrame, text = "Histogram Generation", command=lambda: self.controller.onSelectModeHist())
+        HButton = tk.Button(modeButtonFrame, text = "Histogram Generation", font=("bold"), bg= '#ffffff', command=lambda: self.controller.onSelectModeHist())
         HButton.pack(padx=10, side=tk.LEFT) 
         self.modeButtons['Histogram Generation'] = HButton
+
+        self.root.geometry("")
+
+
 
     def mainWindow(self, inputs = []):
 
@@ -42,7 +78,7 @@ class OMView():
 
         childFrames = window.winfo_children()
         for child in childFrames:
-            if child == self.modeButtonFrame:
+            if child in self.framesToPreserve:
                 continue
             else:
                 child.destroy()
@@ -75,7 +111,7 @@ class OMView():
             currentInput.editInfo('associatedField', entry_box)
 
             # Choose File Button
-            chooseFileButton = tk.Button(topLeftFrame, text="Choose File" + inputName, command=lambda current_entry=entry_box, current_input= currentInput: self.controller.onPressSelectFile(current_entry, current_input))
+            chooseFileButton = tk.Button(topLeftFrame, text="Choose File", command=lambda current_entry=entry_box, current_input= currentInput: self.controller.onPressSelectFile(current_entry, current_input))
             chooseFileButton.pack(padx=0, anchor='nw', expand=True, fill=tk.X)  
             currentInput.editInfo('associatedTrigger', chooseFileButton)
             

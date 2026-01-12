@@ -16,33 +16,10 @@ qgs.initQgis()
 from model import OMModel
 from view import OMView
 from controller import OMController
+
+#Importing dependencies
 import tkinter as tk
 
-#------------USER INPUTS--------------------
-'''
-#Shapefile (SHP) for block boundaries 
-blockBoundaries = "C:\wfh\RA4\Roads.shp"
-
-#Shapefile (SHP) for block boundaries you would like domed overlays for
-domedBlocksBoundaries = []
-
-#DEM of ground surface for project area
-groundDEM = "C:/wfh/RA4/RA_4_5_DEM_3ft_ft.tif"
-#"S:/KBE/Prj_2025/Pocosin Lakes IRA/GIS/2020_lidar/RA4_5/RA_4_5_DEM_3ft_ft.tif"
-   
-#Rasterized (TIF) version of your block boundaries
-waterTableDEM = ""
-
-#Vector file (SHP) of the roads within your project area
-projectRoads = ""
-     
-overlay = "C:/wfh/RA4/Option 5 Overlay.tif"
-
-#Where you would like the results to end up
-outputFolder = "C:/wfh/python/overlayMaker outputs"
-#"K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
-
-'''
 
 #-------------DEFINING APP CLASS---------------------
 class App:
@@ -69,7 +46,7 @@ class App:
 #---------main function
 def main():
     root = tk.Tk()
-    root.title("KBE autoOverlay Tool")
+    root.title("KBE Overlay Maker")
     root.geometry("500x350") # Set the window size
 
     app = App(root)
