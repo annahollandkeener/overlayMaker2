@@ -15,7 +15,7 @@ from PyQt5.QtCore import QMetaType
 
 
 #FUNCTION IMPORTS
-from helperFunctions import domedWT, rasterHist, rasterSubtractor
+from model import domedWT, rasterHist, rasterSubtractor
 import testFunctions
 
 

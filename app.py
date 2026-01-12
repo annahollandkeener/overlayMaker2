@@ -13,9 +13,13 @@ qgs = QgsApplication([], False)
 qgs.initQgis()
 
 #Importing all overlay maker functions
-import helperFunctions as helperFunctions, autoOverlay
+from model import OMModel
+from view import OMView
+from controller import OMController
+import tkinter as tk
 
 #------------USER INPUTS--------------------
+'''
 #Shapefile (SHP) for block boundaries 
 blockBoundaries = "C:\wfh\RA4\Roads.shp"
 
@@ -38,11 +42,48 @@ overlay = "C:/wfh/RA4/Option 5 Overlay.tif"
 outputFolder = "C:/wfh/python/overlayMaker outputs"
 #"K:/Docs/Guidance & Processes/Python Tools/overlayMaker2Ouputs"
 
-#-------------CALL FUNCTIONS HERE---------------------
-autoOverlay.overlayMaker(blockBoundaries, groundDEM, outputFolder, [0])
-#rasterAnimation.rasterAnimator(groundDEM, "C:/wfh/North River/wellRasters")
+'''
 
-#helperFunctions.rasterHist(overlay, blockBoundaries, "C:/wfh/RA4/Histograms/progress", "C:/wfh/RA4/Histograms", None, "DTW Histogram: Option 5")
+#-------------DEFINING APP CLASS---------------------
+class App:
+    def __init__(self, root):
+        self.root = root
+        self.mode = None
+        self.inputs = {}
+
+        self.modeButtons = []
+
+        SOInputs = ['Blocks', 'DEM', 'Output Folder']
+        AOInputs = ['Blocks', 'DEM', 'Output Folder']
+        histInputs = ['Blocks', 'Overlay','Output Folder']
+
+    def getModeButtons(self):
+        return self.modeButtons
+    
+    def getRoot(self):
+        return self.root
+    
+    def getInputs(self):
+        return self.inputs
+
+#---------main function
+def main():
+    root = tk.Tk()
+    root.title("KBE autoOverlay Tool")
+    root.geometry("500x350") # Set the window size
+
+    app = App(root)
+
+    m = OMModel(app)
+    c = OMController(m, None, app)
+    v = OMView(c, root, app)
+    c.view = v
+
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
+
 #-----------------------------------------------------
 
 # Finally, exitQgis() is called to remove the
