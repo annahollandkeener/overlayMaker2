@@ -46,7 +46,7 @@ class App:
 #---------main function
 def main():
     root = tk.Tk()
-    root.title("KBE Overlay Maker")
+    root.title("KBE Overlay Maker Tool")
     root.geometry("500x350") # Set the window size
 
     app = App(root)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 # Finally, exitQgis() is called to remove the
 # provider and layer registries from memory   
 
-print("\nDONE! :)\n")
+#print("\nDONE! :)\n")
 
 qgs.exitQgis()
 

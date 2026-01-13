@@ -1,5 +1,6 @@
 import tkinter as tk 
 from PIL import ImageTk, Image
+import os
 
 class OMView():
 
@@ -36,17 +37,8 @@ class OMView():
         image_label.pack(side=tk.LEFT,padx=5, pady=15)
         image_label.image = photo
         
-        title = tk.Label(imageFrame, text='Overlay Maker', font=("Helvetica", 15, "bold"), bg = '#39979e')
+        title = tk.Label(imageFrame, text='Overlay Maker', font=("Helvetica", 15, "bold"), bg = '#39979e', fg = '#1f1f1f')
         title.pack(side=tk.LEFT, padx=5, pady=15)
-
-
-        pocosinPath = "C:/wfh/python/overlayMaker2/overlayMaker2/assets/pocosin.jpg"
-        original_image_pocosin = Image.open(pocosinPath)
-        resized_image_pocosin = original_image_pocosin.resize((599, 181), Image.Resampling.LANCZOS)
-        pocosinPhoto = ImageTk.PhotoImage(resized_image_pocosin)
-        image_label_pocosin = tk.Label(self.root, image=pocosinPhoto)
-        image_label_pocosin.pack(side=tk.TOP, fill='x')
-        image_label_pocosin.image = pocosinPhoto
 
         instruction = tk.Label(self.root, text='Select a mode:', font=("Helvetica", 12, "bold"), fg = '#707070')
         instruction.pack(anchor='center', padx=5, pady=10)
@@ -55,9 +47,9 @@ class OMView():
         modeButtonFrame.pack(anchor='n',expand=True, pady=15, padx=10)
         self.framesToPreserve.append(modeButtonFrame)
 
-        SOButton = tk.Button(modeButtonFrame, text = "Simple Overlay", font=("bold"), bg= '#ffffff', command=lambda: self.controller.onSelectModeSO())
+        SOButton = tk.Button(modeButtonFrame, text = "Flat Overlay", font=("bold"), bg= '#ffffff', command=lambda: self.controller.onSelectModeSO())
         SOButton.pack(padx=10, side=tk.LEFT) 
-        self.modeButtons['Simple Overlay'] = SOButton
+        self.modeButtons['Flat Overlay'] = SOButton
 
         AOButton = tk.Button(modeButtonFrame, text = "autoOverlay", font=("bold"), bg= '#ffffff', command=lambda: self.controller.onSelectModeAO())
         AOButton.pack(padx=10, side=tk.LEFT) 
@@ -67,13 +59,19 @@ class OMView():
         HButton.pack(padx=10, side=tk.LEFT) 
         self.modeButtons['Histogram Generation'] = HButton
 
+        pocosinPath = "C:/wfh/python/overlayMaker2/overlayMaker2/assets/pocosin.jpg"
+        original_image_pocosin = Image.open(pocosinPath)
+        resized_image_pocosin = original_image_pocosin.resize((599, 181), Image.Resampling.LANCZOS)
+        pocosinPhoto = ImageTk.PhotoImage(resized_image_pocosin)
+        image_label_pocosin = tk.Label(self.root, image=pocosinPhoto)
+        image_label_pocosin.pack(side=tk.TOP, fill='x')
+        image_label_pocosin.image = pocosinPhoto
+
         self.root.geometry("")
-
-
+        
 
     def mainWindow(self, inputs = []):
 
-        print("MAIN WINDOW!")
         window = self.app.getRoot()
 
         childFrames = window.winfo_children()
@@ -84,13 +82,22 @@ class OMView():
                 child.destroy()
 
         #Making frame for interface--------------------------
+        '''
+        if self.app.mode == 'AO':
+            desc = """
+            Creates several overlay options for the extent of specified
+            blocks based on domed water tables created for each block. 
+            Will estimate existing water level if not specified. 
+            """
+        descriptionFrame = tk.Label(window, text=desc, justify='left')
+        descriptionFrame.pack(anchor='center', expand=True, fill=tk.BOTH, padx=50)
+        '''
+
         main=tk.Frame(window)
         main.pack(anchor='nw', expand=True, fill=tk.BOTH)
 
         entrBoxes = []
 
-        for widget in main.winfo_children():
-            widget.destroy()
 
         #making a frame
         topLeftFrame = tk.Frame(main)
@@ -111,10 +118,15 @@ class OMView():
             currentInput.editInfo('associatedField', entry_box)
 
             # Choose File Button
-            chooseFileButton = tk.Button(topLeftFrame, text="Choose File", command=lambda current_entry=entry_box, current_input= currentInput: self.controller.onPressSelectFile(current_entry, current_input))
-            chooseFileButton.pack(padx=0, anchor='nw', expand=True, fill=tk.X)  
-            currentInput.editInfo('associatedTrigger', chooseFileButton)
-            
+            if inputName == 'Output Folder':
+                chooseFileButton = tk.Button(topLeftFrame, text="Choose Folder", command=lambda current_entry=entry_box, current_input= currentInput: self.controller.onPressSelectDirectory(current_entry, current_input))
+                chooseFileButton.pack(padx=0, anchor='nw', expand=True, fill=tk.X)  
+                currentInput.editInfo('associatedTrigger', chooseFileButton)
+            else:
+                chooseFileButton = tk.Button(topLeftFrame, text="Choose File", command=lambda current_entry=entry_box, current_input= currentInput: self.controller.onPressSelectFile(current_entry, current_input))
+                chooseFileButton.pack(padx=0, anchor='nw', expand=True, fill=tk.X)  
+                currentInput.editInfo('associatedTrigger', chooseFileButton)
+                
         # Run Button
         submit_button = tk.Button(main, text="Run", command= lambda: self.controller.on_submit(self.app))
         submit_button.pack(pady=10)
@@ -123,13 +135,12 @@ class OMView():
         window.geometry("")
 
     def pressButton(self):
-        print("PRESSED")
 
         for key, value in self.modeButtons.items():
             value.config(relief=tk.RAISED)
 
         if self.app.mode == "SO":
-            self.modeButtons['Simple Overlay'].config(relief=tk.SUNKEN)
+            self.modeButtons['Flat Overlay'].config(relief=tk.SUNKEN)
             self.mainWindow(self.SOInputs)
         elif self.app.mode == "AO":
             self.modeButtons['autoOverlay'].config(relief=tk.SUNKEN)
