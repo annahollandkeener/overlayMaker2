@@ -1,29 +1,41 @@
-# <b><span style="color: #7faeb3;"> overlayMaker README </span></b>
+# <b><span style="color: #7faeb3;"> Overlay Maker README </span></b>
 ---
-## The 'overlayMaker' is a suite of tools built from available pyqgis functions that allows for efficient creation and analysis of overlays for pocosin restoration projects
+## 'Overlay Maker' is an application built from available pyqgis functions that allows for efficient creation and analysis of overlays for restoration projects
 ---
 
-###  <span style="color: #7faeb3"> Setting Up the 'overlayMaker' Workspace: </span>
-* Activate your qgis environment 
-    * See the [Python and QGIS Guide](https://docs.google.com/document/d/1FuxWWG3lmFlltaK0mbh07ZeaEtTw5XA0LBubkZIZ6Oc/edit?tab=t.0) for info on how to create a pyqgis environment
-* Open VSCode 
-* Navigate to chosen directory
-* Clone the repository into your chosen directory 
+###  <span style="color: #7faeb3"> Setting Up the 'Overlay Maker' Workspace: </span>
+* Install and open VSCode 
+    * See [Python and QGIS Guide](https://docs.google.com/document/d/1FuxWWG3lmFlltaK0mbh07ZeaEtTw5XA0LBubkZIZ6Oc/edit?tab=t.0) for information on how to download VS Code
+* Open your directory of choice inside of VS Code
+* Clone the repository into your chosen directory using the VS Code terminal
     * See [Python and QGIS Guide](https://docs.google.com/document/d/1FuxWWG3lmFlltaK0mbh07ZeaEtTw5XA0LBubkZIZ6Oc/edit?tab=t.0) for info on Github and cloning repositories
-* Operate the available functions in the repository by calling and running from the 'main.py' file 
+* Create a copy of the application's environment using conda:
+     
+     <i>(See the [Python and QGIS Guide](https://docs.google.com/document/d/1FuxWWG3lmFlltaK0mbh07ZeaEtTw5XA0LBubkZIZ6Oc/edit?tab=t.0) for info on how to install conda and create a pyqgis environment)</i>
+    * To create a copy of the environment for the Overlay Maker app, you will type the following into the VS Code terminal:
+        
+            "conda env create -f environment.yml"
+
+    * You can activate the environment by typing the following:
+
+            "conda activate qgis"
 ---
 
-### <span style="color: #7faeb3"> Making Your Own Functions: </span>
-If you wish to make custom functions for your overlayMaker, you can use the 'customFunctions.py' file to create your own. This file is automatically imported into the main file, from which your functions can be called and ran. 
+###  <span style="color: #7faeb3"> Running the Application: </span>
 
-----
+<u>From VS Code:</u>
+* Ensure you are in the directory that contains the 'app.py' file
+* In VS code, click the 'app.py' file in the explorer and press the play button in the top right corner of the window
+* You can also run the program from the terminal of VS code with:
+            
+            "python app.py"
 
 
+<u>From VS Code:</u>
+---
 
 ### <span style="color: #7faeb3">Function Descriptions: </span>
-#### ----> <i> Located in 'overlayMakerFunctions.py' </i>
-
-<center><b><span style="color: #7faeb3">--------------------------</b></span></center>
+#### <i> <center> (Found in 'model.py') </center></i>
 
 ###  <u><b> 'autoOverlay' </b></u> 
 
